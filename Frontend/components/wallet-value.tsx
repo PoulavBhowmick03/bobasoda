@@ -6,9 +6,12 @@ import Profile from "./profile"
 import { useRef, useEffect, useState } from "react"
 import { ChevronUp, ChevronDown, Search, Bell } from "lucide-react"
 import Image from "next/image"
+import { SUPPORTED_TOKEN_SYMBOLS } from "@/lib/pyth-config"
 
 export default function WalletValue() {
-  const markets = ["ETH"]
+  // Use all supported tokens from Pyth config
+  // You can customize this list to show only specific markets
+  const markets = ["ETH", "BTC", "SOL", "LINK", "ARB", "OP"]
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)

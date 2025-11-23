@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from 'react'
 import { LineChart, Line, ResponsiveContainer, YAxis, ReferenceLine } from 'recharts'
 
-interface BnbPriceChartProps {
+interface BtcPriceChartProps {
   currentPrice: number | null
   lockPrice: number | null
 }
@@ -13,7 +13,7 @@ interface PriceDataPoint {
   price: number
 }
 
-export default function BnbPriceChart({ currentPrice, lockPrice }: BnbPriceChartProps) {
+export default function BtcPriceChart({ currentPrice, lockPrice }: BtcPriceChartProps) {
   const [priceHistory, setPriceHistory] = useState<PriceDataPoint[]>([])
   const priceRef = useRef<number | null>(null)
   const initRef = useRef(false)
@@ -40,7 +40,7 @@ export default function BnbPriceChart({ currentPrice, lockPrice }: BnbPriceChart
         })
       }
 
-      console.log('📈 BNB Chart initialized at $' + priceRef.current.toFixed(2))
+      console.log('📈 BTC Chart initialized at $' + priceRef.current.toFixed(2))
       setPriceHistory(initialData)
     }, 500)
 
@@ -52,7 +52,7 @@ export default function BnbPriceChart({ currentPrice, lockPrice }: BnbPriceChart
         if (prev.length === 0) return prev
         return [...prev, { time: Date.now(), price: priceRef.current! }].slice(-60)
       })
-      console.log(`📊 BNB Updated: $${priceRef.current.toFixed(2)}`)
+      console.log(`📊 BTC Updated: $${priceRef.current.toFixed(2)}`)
     }, 5000)
 
     return () => {
@@ -66,10 +66,10 @@ export default function BnbPriceChart({ currentPrice, lockPrice }: BnbPriceChart
       <div className="w-full h-full flex items-center justify-center">
         <div className="text-center">
           <p className="text-black opacity-50 text-sm">
-            {!currentPrice ? 'Loading BNB price...' : 'Initializing chart...'}
+            {!currentPrice ? 'Loading BTC price...' : 'Initializing chart...'}
           </p>
           <p className="text-black opacity-30 text-xs mt-1">
-            {currentPrice ? `Current: $${currentPrice.toFixed(2)}` : 'Fetching from Pyth Network'}
+            {currentPrice ? `Current: $${currentPrice.toLocaleString()}` : 'Fetching from Pyth Network'}
           </p>
         </div>
       </div>
@@ -80,7 +80,7 @@ export default function BnbPriceChart({ currentPrice, lockPrice }: BnbPriceChart
     <div className="w-full h-full">
       <ResponsiveContainer width="100%" height="100%">
         <LineChart data={priceHistory} margin={{ top: 5, right: 5, left: 5, bottom: 5 }}>
-          <YAxis domain={['dataMin - 2', 'dataMax + 2']} hide />
+          <YAxis domain={['dataMin - 100', 'dataMax + 100']} hide />
 
           {/* Reference line showing lock price (captured at 30s mark) */}
           {lockPrice !== null && (
@@ -106,4 +106,3 @@ export default function BnbPriceChart({ currentPrice, lockPrice }: BnbPriceChart
     </div>
   )
 }
-
