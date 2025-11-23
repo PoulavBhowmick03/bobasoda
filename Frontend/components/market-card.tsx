@@ -1,11 +1,12 @@
 "use client"
 
 import { ArrowUp, ArrowDown } from "lucide-react"
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useMemo } from "react"
 import { usePriceWithFallback } from "@/hooks/usePriceWithFallback"
 import { useCurrentRound } from "@/hooks/useCurrentRound"
 import { SUPPORTED_TOKENS } from "@/lib/pyth-config"
 import EthPriceChart from "./eth-price-chart"
+import { baseSepoliaChain } from "./providers"
 
 interface MarketCardProps {
   marketName: string
@@ -31,12 +32,19 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
   const [isMagnetized, setIsMagnetized] = useState(false)
   const [timerProgress, setTimerProgress] = useState(0)
   const [lockPrice, setLockPrice] = useState<number | null>(null)
+  const [showOnboarding, setShowOnboarding] = useState(false)
+  const [onboardingTimeLeft, setOnboardingTimeLeft] = useState(30)
+  const [faucetStatus, setFaucetStatus] = useState<string | null>(null)
   const dragStartX = useRef(0)
   const audioRef = useRef<HTMLAudioElement | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const gainNodeRef = useRef<GainNode | null>(null)
   const sourceNodeRef = useRef<MediaElementAudioSourceNode | null>(null)
   const lastResetEpochRef = useRef<number | null>(null)
+  const onboardingTimerRef = useRef<NodeJS.Timeout | null>(null)
+
+  const faucetUrl = useMemo(() => 'https://www.coinbase.com/faucets/base-sepolia-testnet', [])
+  const onboardingStorageKey = useMemo(() => 'bobasoda_onboarding_seen_v1', [])
 
   useEffect(() => {
     if (!roundData) {
@@ -140,6 +148,75 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
     }
   }, [])
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const seen = localStorage.getItem(onboardingStorageKey)
+    if (!seen) {
+      setShowOnboarding(true)
+      setOnboardingTimeLeft(30)
+      onboardingTimerRef.current = setInterval(() => {
+        setOnboardingTimeLeft((prev) => {
+          if (prev <= 1) {
+            clearInterval(onboardingTimerRef.current as NodeJS.Timeout)
+            localStorage.setItem(onboardingStorageKey, 'true')
+            setShowOnboarding(false)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    }
+    return () => {
+      if (onboardingTimerRef.current) {
+        clearInterval(onboardingTimerRef.current)
+      }
+    }
+  }, [onboardingStorageKey])
+
+  const handleDismissOnboarding = () => {
+    setShowOnboarding(false)
+    localStorage.setItem(onboardingStorageKey, 'true')
+    if (onboardingTimerRef.current) {
+      clearInterval(onboardingTimerRef.current)
+    }
+  }
+
+  const handleCopyFaucet = async () => {
+    try {
+      await navigator.clipboard.writeText(faucetUrl)
+      setFaucetStatus('Faucet link copied')
+      setTimeout(() => setFaucetStatus(null), 2500)
+    } catch (err) {
+      console.error('Failed to copy faucet link:', err)
+      setFaucetStatus('Copy failed, tap to open faucet')
+      window.open(faucetUrl, '_blank')
+    }
+  }
+
+  const handleAddNetwork = async () => {
+    if (typeof window === 'undefined' || !(window as any).ethereum) {
+      setFaucetStatus('No wallet detected')
+      return
+    }
+    try {
+      await (window as any).ethereum.request({
+        method: 'wallet_addEthereumChain',
+        params: [{
+          chainId: `0x${baseSepoliaChain.id.toString(16)}`,
+          chainName: baseSepoliaChain.name,
+          nativeCurrency: baseSepoliaChain.nativeCurrency,
+          rpcUrls: baseSepoliaChain.rpcUrls.default.http,
+          blockExplorerUrls: [baseSepoliaChain.blockExplorers.default.url],
+        }],
+      })
+      setFaucetStatus('Base Sepolia added to wallet')
+      setTimeout(() => setFaucetStatus(null), 2500)
+    } catch (err) {
+      console.error('Failed to add network:', err)
+      setFaucetStatus('Add network request was rejected')
+    }
+  }
+
   const cards = [currentCardId, currentCardId + 1, currentCardId + 2]
 
   const handleDragStart = (clientX: number) => {
@@ -221,6 +298,70 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
 
   return (
     <div className="relative h-full w-full overflow-hidden select-none">
+      {showOnboarding && (
+        <div className="absolute inset-0 z-[30] bg-[#0a0b0d]/80 backdrop-blur-md flex items-center justify-center px-4">
+          <div className="w-full max-w-xl bg-black bg-opacity-60 border border-yellow-400/70 rounded-2xl shadow-2xl p-6 sm:p-7 space-y-4 relative">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-xs text-yellow-300 opacity-80 uppercase tracking-[0.2em]">30s guide</p>
+                <h2 className="text-2xl sm:text-3xl font-bold text-white">How Bobasoda rounds work</h2>
+              </div>
+              <button
+                onClick={handleDismissOnboarding}
+                className="text-yellow-300 text-sm px-3 py-1 rounded-full bg-yellow-500/10 hover:bg-yellow-500/20 transition"
+              >
+                Skip
+              </button>
+            </div>
+
+            <div className="h-2 w-full bg-white/10 rounded-full overflow-hidden">
+              <div
+                className="h-full bg-yellow-400 transition-[width]"
+                style={{ width: `${(onboardingTimeLeft / 30) * 100}%` }}
+              />
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3 text-white">
+              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                <p className="text-yellow-300 font-semibold">1. Join a round</p>
+                <p className="text-sm opacity-80 mt-1">Watch the live price, then swipe up/down before the lock time hits.</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                <p className="text-yellow-300 font-semibold">2. Lock & close</p>
+                <p className="text-sm opacity-80 mt-1">After lock, no new bets. Round closes at the timer and settles on oracle price.</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                <p className="text-yellow-300 font-semibold">3. Payouts</p>
+                <p className="text-sm opacity-80 mt-1">Winners split the pool minus fees. Claim after results land.</p>
+              </div>
+              <div className="bg-white/5 rounded-xl p-3 border border-white/10">
+                <p className="text-yellow-300 font-semibold">4. Base Sepolia</p>
+                <p className="text-sm opacity-80 mt-1">We’re on Base Sepolia testnet—grab test ETH and add the network.</p>
+              </div>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={handleCopyFaucet}
+                className="flex-1 bg-yellow-400 text-black font-bold py-3 px-4 rounded-xl hover:bg-yellow-300 transition"
+              >
+                Copy Base Sepolia faucet link
+              </button>
+              <button
+                onClick={handleAddNetwork}
+                className="flex-1 border border-yellow-400 text-yellow-300 font-bold py-3 px-4 rounded-xl hover:bg-yellow-400/10 transition"
+              >
+                Add Base Sepolia to wallet
+              </button>
+            </div>
+
+            {faucetStatus && (
+              <p className="text-center text-sm text-yellow-300 opacity-80">{faucetStatus}</p>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Round Locked Popup - Shows during lock phase only (30s-60s) */}
       {showLockedPopup && (
         <div className="absolute inset-0 z-[20] flex items-center justify-center pointer-events-none">
