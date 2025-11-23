@@ -1,105 +1,87 @@
 'use client'
 
 /**
- * CDP Transaction Hook
+ * Privy Transaction Hook
  *
- * Handles betting transactions using Coinbase embedded wallets.
- * Provides functions to place bets (bull/bear) on the prediction market.
+ * Handles betting transactions using Privy embedded wallets.
+ * Sends direct transactions to the Prediction contract.
  */
 
-import { useState } from 'react'
-import { useEvmAddress, useSendUserOperation } from '@coinbase/cdp-hooks'
-import { Abi, encodeFunctionData, parseEther } from 'viem'
-
-const BASE_SEPOLIA = 'base-sepolia' as const
-
-const predictionAbi = [
-  {
-    type: 'function',
-    name: 'betBull',
-    stateMutability: 'payable',
-    inputs: [{ name: 'epoch', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'betBear',
-    stateMutability: 'payable',
-    inputs: [{ name: 'epoch', type: 'uint256' }],
-    outputs: [],
-  },
-  {
-    type: 'function',
-    name: 'claim',
-    stateMutability: 'nonpayable',
-    inputs: [{ name: 'epochs', type: 'uint256[]' }],
-    outputs: [],
-  },
-] as const satisfies Abi
+import { useState, useMemo } from 'react'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { encodeFunctionData, parseEther } from 'viem'
+import { PREDICTION_ABI, PREDICTION_ADDRESS } from '@/lib/prediction-contract'
 
 interface BetParams {
   amount: string // ETH amount as string (e.g., "0.01")
   direction: 'bull' | 'bear'
-  contractAddress: string
+  contractAddress?: string
   epoch: number
 }
 
 export function useCDPTransaction() {
-  const { evmAddress } = useEvmAddress()
-  const { sendUserOperation, status } = useSendUserOperation()
+  const { authenticated } = usePrivy()
+  const { wallets } = useWallets()
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const isPending = status === 'pending'
+  const [isPending, setIsPending] = useState(false)
+
+  const primaryWallet = useMemo(() => {
+    if (!wallets || wallets.length === 0) return null
+    return wallets.find((w) => w.walletClientType === 'privy') || wallets[0]
+  }, [wallets])
+
+  /**
+   * Send a transaction using the embedded wallet provider
+   */
+  const sendTx = async (to: `0x${string}`, data: `0x${string}`, value: bigint) => {
+    if (!authenticated || !primaryWallet) {
+      throw new Error('Wallet not connected')
+    }
+    const provider = await primaryWallet.getEthereumProvider?.()
+    const from = primaryWallet.address as `0x${string}`
+    if (!provider || !from) {
+      throw new Error('No provider available from Privy wallet')
+    }
+    const valueHex = `0x${value.toString(16)}`
+    const tx = {
+      from,
+      to,
+      data,
+      value: valueHex,
+    }
+    const hash = await provider.request({ method: 'eth_sendTransaction', params: [tx] })
+    return hash as string
+  }
 
   /**
    * Place a bet on the prediction market
    */
   const placeBet = async ({ amount, direction, contractAddress, epoch }: BetParams) => {
-    if (!evmAddress) {
-      setError('Wallet not connected')
-      return { success: false, error: 'Wallet not connected' }
-    }
+    const targetAddress = (contractAddress || PREDICTION_ADDRESS) as `0x${string}`
 
     try {
+      setIsPending(true)
       setError(null)
       setTxHash(null)
 
-      // Determine which function to call based on direction
       const functionName = direction === 'bull' ? 'betBull' : 'betBear'
       const value = parseEther(amount)
       const data = encodeFunctionData({
-        abi: predictionAbi,
+        abi: PREDICTION_ABI,
         functionName,
         args: [BigInt(epoch)],
       })
 
-      console.log(`📝 Preparing ${direction} bet:`, {
-        amount,
-        epoch,
-        contractAddress,
-        functionName,
-      })
-
-      const result = await sendUserOperation({
-        evmSmartAccount: evmAddress,
-        network: BASE_SEPOLIA,
-        calls: [
-          {
-            to: contractAddress as `0x${string}`,
-            data,
-            value,
-          },
-        ],
-      })
-
-      console.log('✅ User operation sent:', result.userOperationHash)
-      setTxHash(result.userOperationHash)
-
-      return { success: true }
+      const hash = await sendTx(targetAddress, data, value)
+      setTxHash(hash)
+      setIsPending(false)
+      return { success: true, hash }
     } catch (err: any) {
-      const errorMessage = err.message || 'Failed to place bet'
+      const errorMessage = err?.message || 'Failed to place bet'
       console.error('❌ Bet error:', errorMessage)
       setError(errorMessage)
+      setIsPending(false)
       return { success: false, error: errorMessage }
     }
   }
@@ -107,50 +89,34 @@ export function useCDPTransaction() {
   /**
    * Claim rewards from a won round
    */
-  const claimRewards = async (contractAddress: string, epochs: number[]) => {
-    if (!evmAddress) {
-      setError('Wallet not connected')
-      return { success: false, error: 'Wallet not connected' }
-    }
+  const claimRewards = async (contractAddress: string | undefined, epochs: number[]) => {
+    const targetAddress = (contractAddress || PREDICTION_ADDRESS) as `0x${string}`
 
     try {
+      setIsPending(true)
       setError(null)
       setTxHash(null)
 
-      console.log('📝 Claiming rewards for epochs:', epochs)
-
       const data = encodeFunctionData({
-        abi: predictionAbi,
+        abi: PREDICTION_ABI,
         functionName: 'claim',
         args: [epochs.map((epoch) => BigInt(epoch))],
       })
 
-      const result = await sendUserOperation({
-        evmSmartAccount: evmAddress,
-        network: BASE_SEPOLIA,
-        calls: [
-          {
-            to: contractAddress as `0x${string}`,
-            data,
-            value: BigInt(0),
-          },
-        ],
-      })
-
-      console.log('✅ Claim user operation sent:', result.userOperationHash)
-      setTxHash(result.userOperationHash)
-
-      return { success: true }
+      const hash = await sendTx(targetAddress, data, BigInt(0))
+      setTxHash(hash)
+      setIsPending(false)
+      return { success: true, hash }
     } catch (err: any) {
-      const errorMessage = err.message || 'Failed to claim rewards'
+      const errorMessage = err?.message || 'Failed to claim rewards'
       console.error('❌ Claim error:', errorMessage)
       setError(errorMessage)
+      setIsPending(false)
       return { success: false, error: errorMessage }
     }
   }
 
   return {
-    evmAddress,
     placeBet,
     claimRewards,
     isPending,

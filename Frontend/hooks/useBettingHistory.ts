@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useEvmAddress } from '@coinbase/cdp-hooks'
+import { useEffect, useMemo, useState } from 'react'
+import { usePrivy, useWallets } from '@privy-io/react-auth'
 
 export interface BetRecord {
   id: string
@@ -19,9 +19,16 @@ export interface BetRecord {
 const STORAGE_KEY = 'bobasoda_betting_history'
 
 export function useBettingHistory() {
-  const { evmAddress } = useEvmAddress()
+  const { authenticated } = usePrivy()
+  const { wallets } = useWallets()
   const [history, setHistory] = useState<BetRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
+
+  const evmAddress = useMemo(() => {
+    if (!authenticated || wallets.length === 0) return ''
+    const embedded = wallets.find((w) => w.walletClientType === 'privy') || wallets[0]
+    return embedded?.address || ''
+  }, [authenticated, wallets])
 
   // Load history from localStorage
   useEffect(() => {

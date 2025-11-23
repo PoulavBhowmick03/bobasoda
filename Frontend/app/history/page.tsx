@@ -3,11 +3,18 @@
 import BottomNav from "@/components/bottom-nav"
 import { useViewportHeight } from "@/hooks/useViewportHeight"
 import { useBettingHistory } from "@/hooks/useBettingHistory"
-import { useEvmAddress } from "@coinbase/cdp-hooks"
+import { usePrivy, useWallets } from "@privy-io/react-auth"
+import { useMemo } from "react"
 
 export default function History() {
   const viewportHeight = useViewportHeight()
-  const { evmAddress } = useEvmAddress()
+  const { authenticated } = usePrivy()
+  const { wallets } = useWallets()
+  const evmAddress = useMemo(() => {
+    if (!authenticated || wallets.length === 0) return ''
+    const embedded = wallets.find((w) => w.walletClientType === 'privy') || wallets[0]
+    return embedded?.address || ''
+  }, [authenticated, wallets])
   const { history, isLoading, clearHistory } = useBettingHistory()
 
   const formatAmount = (amount: string) => {

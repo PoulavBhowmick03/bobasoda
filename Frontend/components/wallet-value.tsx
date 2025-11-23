@@ -3,6 +3,7 @@
 import MarketCard from "./market-card"
 import CommitPopup from "./commit-popup"
 import Profile from "./profile"
+import Leaderboard from "./leaderboard"
 import { useRef, useEffect, useState } from "react"
 import { ChevronUp, ChevronDown, Search, Bell } from "lucide-react"
 import Image from "next/image"
@@ -17,7 +18,7 @@ export default function WalletValue() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showCommitPopup, setShowCommitPopup] = useState(false)
   const [commitDirection, setCommitDirection] = useState<"up" | "down">("up")
-  const [currentPage, setCurrentPage] = useState<"markets" | "profile">("profile")
+  const [currentPage, setCurrentPage] = useState<"markets" | "profile" | "leaderboard">("profile")
   const [swipedMarkets, setSwipedMarkets] = useState<Set<string>>(new Set())
 
   useEffect(() => {
@@ -192,12 +193,14 @@ export default function WalletValue() {
             />
           )}
         </>
-      ) : (
+      ) : currentPage === "profile" ? (
         <Profile
           onConnectWallet={handleConnectWallet}
           onDisconnectWallet={handleDisconnectWallet}
         />
-      )}
+      ) : currentPage === "leaderboard" ? (
+        <Leaderboard />
+      ) : null}
 
       {/* Fixed Bottom Navigation - Always on top */}
       <div
@@ -247,13 +250,20 @@ export default function WalletValue() {
             className="w-8 h-8 sm:w-10 sm:h-10 [filter:brightness(0)_saturate(100%)_invert(45%)_sepia(0%)_saturate(0%)_hue-rotate(0deg)_brightness(95%)_contrast(92%)]"
           />
         </button>
-        <button className="p-3 sm:p-4 hover:bg-gray-100 rounded-full transition">
+        <button
+          onClick={() => setCurrentPage("leaderboard")}
+          className={`p-3 sm:p-4 rounded-full transition ${
+            currentPage === "leaderboard" ? "bg-yellow-400" : "hover:bg-gray-100"
+          }`}
+        >
           <Image
-            src="/icons/brain-02.svg"
-            alt="AI"
+            src="/icons/trophy.svg"
+            alt="Leaderboard"
             width={40}
             height={40}
-            className="w-8 h-8 sm:w-10 sm:h-10 [filter:brightness(0)_saturate(100%)_invert(45%)_sepia(0%)_saturate(0%)_hue-rotate(0deg)_brightness(95%)_contrast(92%)]"
+            className={`w-8 h-8 sm:w-10 sm:h-10 ${
+              currentPage === "leaderboard" ? "[filter:brightness(0)]" : "[filter:brightness(0)_saturate(100%)_invert(45%)_sepia(0%)_saturate(0%)_hue-rotate(0deg)_brightness(95%)_contrast(92%)]"
+            }`}
           />
         </button>
       </div>

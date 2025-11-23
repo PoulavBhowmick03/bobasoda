@@ -3,87 +3,7 @@
 import { useEffect, useState } from 'react'
 import { createPublicClient, http } from 'viem'
 import { baseSepoliaChain } from '@/components/providers'
-
-const PREDICTION_CONTRACT = process.env.NEXT_PUBLIC_PREDICTION_CONTRACT as `0x${string}` | undefined
-
-// ABI for reading current epoch and round data, plus events
-const PREDICTION_ABI = [
-  {
-    inputs: [],
-    name: 'currentEpoch',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    inputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    name: 'rounds',
-    outputs: [
-      { internalType: 'uint256', name: 'epoch', type: 'uint256' },
-      { internalType: 'uint256', name: 'startTimestamp', type: 'uint256' },
-      { internalType: 'uint256', name: 'lockTimestamp', type: 'uint256' },
-      { internalType: 'uint256', name: 'closeTimestamp', type: 'uint256' },
-      { internalType: 'int256', name: 'lockPrice', type: 'int256' },
-      { internalType: 'int256', name: 'closePrice', type: 'int256' },
-      { internalType: 'uint256', name: 'lockOracleId', type: 'uint256' },
-      { internalType: 'uint256', name: 'closeOracleId', type: 'uint256' },
-      { internalType: 'uint256', name: 'totalAmount', type: 'uint256' },
-      { internalType: 'uint256', name: 'bullAmount', type: 'uint256' },
-      { internalType: 'uint256', name: 'bearAmount', type: 'uint256' },
-      { internalType: 'uint256', name: 'rewardBaseCalAmount', type: 'uint256' },
-      { internalType: 'uint256', name: 'rewardAmount', type: 'uint256' },
-      { internalType: 'bool', name: 'oracleCalled', type: 'bool' },
-    ],
-    stateMutability: 'view',
-    type: 'function',
-  },
-  {
-    anonymous: false,
-    inputs: [{ indexed: true, internalType: 'uint256', name: 'epoch', type: 'uint256' }],
-    name: 'StartRound',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'uint256', name: 'epoch', type: 'uint256' },
-      { indexed: true, internalType: 'uint256', name: 'oracleTimestamp', type: 'uint256' },
-      { indexed: false, internalType: 'int256', name: 'price', type: 'int256' },
-    ],
-    name: 'LockRound',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'uint256', name: 'epoch', type: 'uint256' },
-      { indexed: true, internalType: 'uint256', name: 'oracleTimestamp', type: 'uint256' },
-      { indexed: false, internalType: 'int256', name: 'price', type: 'int256' },
-    ],
-    name: 'EndRound',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'address', name: 'sender', type: 'address' },
-      { indexed: true, internalType: 'uint256', name: 'epoch', type: 'uint256' },
-      { indexed: false, internalType: 'uint256', name: 'amount', type: 'uint256' },
-    ],
-    name: 'BetBull',
-    type: 'event',
-  },
-  {
-    anonymous: false,
-    inputs: [
-      { indexed: true, internalType: 'address', name: 'sender', type: 'address' },
-      { indexed: true, internalType: 'uint256', name: 'epoch', type: 'uint256' },
-      { indexed: false, internalType: 'uint256', name: 'amount', type: 'uint256' },
-    ],
-    name: 'BetBear',
-    type: 'event',
-  },
-] as const
+import { PREDICTION_ADDRESS, PREDICTION_ABI } from '@/lib/prediction-contract'
 
 export interface RoundData {
   epoch: number
@@ -104,14 +24,31 @@ export function useCurrentRound() {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
+  type RawRound = readonly [
+    bigint, // epoch
+    bigint, // startTimestamp
+    bigint, // lockTimestamp
+    bigint, // closeTimestamp
+    bigint, // lockPrice
+    bigint, // closePrice
+    bigint, // lockOracleId
+    bigint, // closeOracleId
+    bigint, // totalAmount
+    bigint, // bullAmount
+    bigint, // bearAmount
+    bigint, // rewardBaseCalAmount
+    bigint, // rewardAmount
+    boolean // oracleCalled
+  ]
+
   useEffect(() => {
-    if (!PREDICTION_CONTRACT || PREDICTION_CONTRACT === '0x0000000000000000000000000000000000000000') {
+    if (!PREDICTION_ADDRESS || PREDICTION_ADDRESS === '0x0000000000000000000000000000000000000000') {
       setError('Prediction contract address is not configured. Set NEXT_PUBLIC_PREDICTION_CONTRACT.')
       setIsLoading(false)
       return
     }
 
-    const contractAddress = PREDICTION_CONTRACT as `0x${string}`
+    const contractAddress = PREDICTION_ADDRESS as `0x${string}`
 
     const publicClient = createPublicClient({
       chain: baseSepoliaChain,
@@ -144,7 +81,16 @@ export function useCurrentRound() {
           abi: PREDICTION_ABI,
           functionName: 'rounds',
           args: [epoch],
-        })
+        }) as unknown as RawRound
+
+        // If round timestamps are zero, treat as not started
+        if (round[1] === BigInt(0) || round[2] === BigInt(0) || round[3] === BigInt(0)) {
+          console.warn('⏸️ Round timestamps are zero; no active round yet.')
+          setCurrentEpoch(epochNum)
+          setRoundData(null)
+          setIsLoading(false)
+          return
+        }
 
         const data: RoundData = {
           epoch: Number(round[0]),

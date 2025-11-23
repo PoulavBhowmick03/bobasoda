@@ -8,6 +8,10 @@ import Image from "next/image"
 import BottomNav from "./bottom-nav"
 import { useBettingHistory } from "@/hooks/useBettingHistory"
 import { useCurrentRound } from "@/hooks/useCurrentRound"
+import { useCDPTransaction } from "@/hooks/useCDPTransaction"
+import { PREDICTION_ADDRESS, PREDICTION_ABI } from "@/lib/prediction-contract"
+import { createPublicClient, http, parseEther } from "viem"
+import { baseSepoliaChain } from "./providers"
 
 export default function Markets() {
   const markets = ["ETH", "BTC", "BNB"]
@@ -16,10 +20,12 @@ export default function Markets() {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showCommitPopup, setShowCommitPopup] = useState(false)
   const [commitDirection, setCommitDirection] = useState<"up" | "down">("up")
-  const [swipedMarkets, setSwipedMarkets] = useState<Set<string>>(new Set())
+  const [swipesByMarket, setSwipesByMarket] = useState<Record<string, number>>({})
   
   const { addBet } = useBettingHistory()
-  const { currentEpoch } = useCurrentRound()
+  const { currentEpoch, roundData } = useCurrentRound()
+  const { placeBet, isPending } = useCDPTransaction()
+  const [minBetWei, setMinBetWei] = useState<bigint | null>(null)
 
   useEffect(() => {
     // Detect if device is mobile
@@ -29,6 +35,29 @@ export default function Markets() {
     checkMobile()
     window.addEventListener('resize', checkMobile)
     return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  useEffect(() => {
+    // Fetch min bet from contract once
+    const fetchMinBet = async () => {
+      try {
+        const client = createPublicClient({
+          chain: baseSepoliaChain,
+          transport: http('https://sepolia.base.org'),
+        })
+        const result = await client.readContract({
+          address: PREDICTION_ADDRESS as `0x${string}`,
+          abi: PREDICTION_ABI,
+          functionName: 'minBetAmount',
+        })
+        if (typeof result === 'bigint') {
+          setMinBetWei(result)
+        }
+      } catch (err) {
+        console.warn('Could not fetch min bet amount:', err)
+      }
+    }
+    fetchMinBet()
   }, [])
 
   useEffect(() => {
@@ -75,27 +104,74 @@ export default function Markets() {
   const handleSwipeComplete = (direction: "up" | "down", marketName: string) => {
     setCommitDirection(direction)
     setShowCommitPopup(true)
-    // Mark this market as swiped for this round
-    setSwipedMarkets(prev => new Set(prev).add(marketName))
+    // Mark this market as swiped for the current epoch
+    setSwipesByMarket((prev) => ({
+      ...prev,
+      [marketName]: currentEpoch ?? 0,
+    }))
   }
 
-  const handleCommitConfirm = (amount: string) => {
+  const handleCommitConfirm = async (amount: string) => {
     console.log(`Committed ${amount} betting ${commitDirection.toUpperCase()}`)
-    
-    // Add bet to history
-    addBet({
-      epoch: currentEpoch || 0,
+
+    if (!currentEpoch || !roundData) {
+      alert('Round not active yet. Please wait for the next round to start.')
+      return
+    }
+
+    const now = Math.floor(Date.now() / 1000)
+    if (!(now > roundData.startTimestamp && now < roundData.lockTimestamp)) {
+      alert('Bet window is closed for this round.')
+      return
+    }
+
+    if (!amount || Number(amount) <= 0) {
+      alert('Enter a valid amount greater than zero.')
+      return
+    }
+
+    try {
+      const weiAmount = parseEther(amount)
+      if (minBetWei && weiAmount < minBetWei) {
+        alert(`Minimum bet is ${Number(minBetWei) / 1e18} ETH`)
+        return
+      }
+    } catch (err) {
+      alert('Invalid amount')
+      return
+    }
+
+    // Call on-chain bet
+    const betResult = await placeBet({
+      amount,
       direction: commitDirection === 'up' ? 'bull' : 'bear',
-      amount: amount,
+      contractAddress: PREDICTION_ADDRESS,
+      epoch: currentEpoch || 0,
     })
-    
-    setShowCommitPopup(false)
+
+    if (betResult.success) {
+      addBet({
+        epoch: currentEpoch || 0,
+        direction: commitDirection === 'up' ? 'bull' : 'bear',
+        amount: amount,
+      })
+      setShowCommitPopup(false)
+    } else if (betResult.error) {
+      alert(`Bet failed: ${betResult.error}`)
+    }
   }
 
   const handleTimerReset = () => {
     // Clear all swipes when timer resets (new round begins)
-    setSwipedMarkets(new Set())
+    setSwipesByMarket({})
   }
+
+  // When a new epoch arrives from the contract, reset swipes so users can bet again
+  useEffect(() => {
+    if (currentEpoch !== undefined && currentEpoch !== null) {
+      setSwipesByMarket({})
+    }
+  }, [currentEpoch])
 
   return (
     <div className="relative h-full w-full">
@@ -148,7 +224,7 @@ export default function Markets() {
             <MarketCard
               marketName={market}
               onSwipeComplete={handleSwipeComplete}
-              hasSwipedThisRound={swipedMarkets.has(market)}
+              hasSwipedThisRound={swipesByMarket[market] === currentEpoch}
               onTimerReset={handleTimerReset}
             />
           </div>
@@ -185,6 +261,7 @@ export default function Markets() {
         <CommitPopup
           direction={commitDirection}
           onConfirm={handleCommitConfirm}
+          isPending={isPending}
         />
       )}
 

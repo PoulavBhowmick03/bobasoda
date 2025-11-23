@@ -5,9 +5,10 @@ import { useState } from "react"
 interface CommitPopupProps {
   onConfirm: (amount: string) => void
   direction: "up" | "down"
+  isPending?: boolean
 }
 
-export default function CommitPopup({ onConfirm, direction }: CommitPopupProps) {
+export default function CommitPopup({ onConfirm, direction, isPending }: CommitPopupProps) {
   const [amount, setAmount] = useState("")
 
   const handleConfirm = () => {
@@ -54,10 +55,10 @@ export default function CommitPopup({ onConfirm, direction }: CommitPopupProps) 
         {/* Confirm Button */}
         <button
           onClick={handleConfirm}
-          disabled={!amount.trim()}
+          disabled={!amount.trim() || isPending}
           className="w-full bg-black text-yellow-400 rounded-xl py-3 px-6 text-lg font-bold hover:bg-gray-900 disabled:bg-gray-600 disabled:text-gray-400 disabled:cursor-not-allowed transition"
         >
-          Confirm
+          {isPending ? 'Submitting...' : 'Confirm'}
         </button>
       </div>
     </div>
