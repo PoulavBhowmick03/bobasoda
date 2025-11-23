@@ -6,15 +6,20 @@ import { useRef, useEffect, useState } from "react"
 import { ChevronUp, ChevronDown, Search, Bell } from "lucide-react"
 import Image from "next/image"
 import BottomNav from "./bottom-nav"
+import { useBettingHistory } from "@/hooks/useBettingHistory"
+import { useCurrentRound } from "@/hooks/useCurrentRound"
 
 export default function Markets() {
-  const markets = ["ETH"]
+  const markets = ["ETH", "BTC", "BNB"]
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)
   const [showCommitPopup, setShowCommitPopup] = useState(false)
   const [commitDirection, setCommitDirection] = useState<"up" | "down">("up")
   const [swipedMarkets, setSwipedMarkets] = useState<Set<string>>(new Set())
+  
+  const { addBet } = useBettingHistory()
+  const { currentEpoch } = useCurrentRound()
 
   useEffect(() => {
     // Detect if device is mobile
@@ -76,6 +81,14 @@ export default function Markets() {
 
   const handleCommitConfirm = (amount: string) => {
     console.log(`Committed ${amount} betting ${commitDirection.toUpperCase()}`)
+    
+    // Add bet to history
+    addBet({
+      epoch: currentEpoch || 0,
+      direction: commitDirection === 'up' ? 'bull' : 'bear',
+      amount: amount,
+    })
+    
     setShowCommitPopup(false)
   }
 
