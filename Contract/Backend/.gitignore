@@ -1,0 +1,76 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Testing
+coverage/
+
+# Production builds
+dist/
+build/
+out/
+.next/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+.env*.local
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+*.sublime-workspace
+*.sublime-project
+
+# Temporary files
+*.tmp
+*.temp
+.cache/
+.temp/
+
+# Smart contract artifacts
+artifacts/
+cache/
+typechain/
+typechain-types/
+
+# Hardhat
+.hardhat/
+
+# Foundry
+lib/
+broadcast/
+deployments/
+
+# Misc
+*.pem
+*.key
+.vercel

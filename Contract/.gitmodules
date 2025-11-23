@@ -1,0 +1,12 @@
+[submodule "Backend/contracts/lib/forge-std"]
+	path = Backend/contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
+[submodule "Backend/contracts/lib/openzeppelin-contracts"]
+	path = Backend/contracts/lib/openzeppelin-contracts
+	url = https://github.com/OpenZeppelin/openzeppelin-contracts
+[submodule "Backend/contracts/lib/chainlink-brownie-contracts"]
+	path = Backend/contracts/lib/chainlink-brownie-contracts
+	url = https://github.com/smartcontractkit/chainlink-brownie-contracts
+[submodule "Backend/contracts/lib/pyth-sdk-solidity"]
+	path = Backend/contracts/lib/pyth-sdk-solidity
+	url = https://github.com/pyth-network/pyth-sdk-solidity
