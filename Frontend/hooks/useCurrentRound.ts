@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createPublicClient, http } from 'viem'
-import { bscTestnetChain } from '@/components/providers'
+import { baseSepoliaChain } from '@/components/providers'
 
 const PREDICTION_CONTRACT = '0x58Ccb2418E0b48D9d3b19a084395B69a1235DcAE' as const
 
@@ -106,8 +106,8 @@ export function useCurrentRound() {
 
   useEffect(() => {
     const publicClient = createPublicClient({
-      chain: bscTestnetChain,
-      transport: http('https://bsc-testnet-rpc.publicnode.com'),
+      chain: baseSepoliaChain,
+      transport: http('https://sepolia.base.org'),
     })
 
     const fetchCurrentRound = async () => {
@@ -163,9 +163,9 @@ export function useCurrentRound() {
         console.log(`Current Time: ${new Date(now * 1000).toLocaleTimeString()}`)
         console.log(`⏱️ Betting closes in: ${bettingSecondsLeft}s`)
         console.log(`⏱️ Round ends in: ${roundSecondsLeft}s`)
-        console.log(`💰 Prize Pool: ${Number(data.totalAmount) / 1e18} BNB`)
-        console.log(`🟢 Bull Pool: ${Number(data.bullAmount) / 1e18} BNB`)
-        console.log(`🔴 Bear Pool: ${Number(data.bearAmount) / 1e18} BNB`)
+        console.log(`💰 Prize Pool: ${Number(data.totalAmount) / 1e18} ETH`)
+        console.log(`🟢 Bull Pool: ${Number(data.bullAmount) / 1e18} ETH`)
+        console.log(`🔴 Bear Pool: ${Number(data.bearAmount) / 1e18} ETH`)
         console.log('==============================')
 
         setCurrentEpoch(epochNum)

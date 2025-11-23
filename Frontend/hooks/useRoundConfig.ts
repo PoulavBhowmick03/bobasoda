@@ -2,11 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { createPublicClient, http } from 'viem'
-import { bscTestnetChain } from '@/components/providers'
+import { baseSepoliaChain } from '@/components/providers'
 
 const PREDICTION_CONTRACT = '0x58Ccb2418E0b48D9d3b19a084395B69a1235DcAE' as const
 
-// ABI for reading public variables from PancakePredictionV2
+// ABI for reading public variables from Prediction contract
 const PREDICTION_ABI = [
   {
     inputs: [],
@@ -32,8 +32,8 @@ export function useRoundConfig() {
 
   useEffect(() => {
     const publicClient = createPublicClient({
-      chain: bscTestnetChain,
-      transport: http('https://bsc-testnet-rpc.publicnode.com'),
+      chain: baseSepoliaChain,
+      transport: http('https://sepolia.base.org'),
     })
 
     const fetchConfig = async () => {

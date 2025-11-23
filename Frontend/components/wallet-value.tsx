@@ -8,7 +8,7 @@ import { ChevronUp, ChevronDown, Search, Bell } from "lucide-react"
 import Image from "next/image"
 
 export default function WalletValue() {
-  const markets = ["ETH", "BNB"]
+  const markets = ["ETH"]
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)

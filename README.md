@@ -1,14 +1,14 @@
 # **Bobasoda — The Fastest Prediction Market Game**
 ---
-Built on **BNB Chain** (BSC Testnet)
+Built on **BASE**
 
 ## **Milestones**
 
 | Status | Milestone |
 |:------:|:-----------|
-| ✅| BNB Chain Testnet configured successfully |
+| ✅| BASE Testnet configured successfully |
 | ✅| Live links and frontend routes fully operational |
-| ✅| BNB Pool logic implemented and tested |
+| ✅| Base Pool logic implemented and tested |
 | ✅| 1-Minute fast-paced betting flow verified in testnet |
 | ✅| Enhanced chart view *(WIP)* |
 | ⚠️| Further feature enhancements and analytics *(WIP)* |
@@ -16,7 +16,7 @@ Built on **BNB Chain** (BSC Testnet)
 ---
 
 ## **What is Bobasoda?**
-Bobasoda is a one-minute prediction market game built on **BNB Chain**, where players bet on whether the price of an asset will go up or down in the next 60 seconds.
+Bobasoda is a one-minute prediction market game built on **BASE**, where players bet on whether the price of an asset will go up or down in the next 60 seconds.
 It's quick, fun, and entirely on-chain — a blend of trading instincts and game-like excitement.
 
 ---
@@ -40,7 +40,7 @@ If not — your stake goes toward rewarding the winners of that round.
 ⚡ **1-Minute Rounds** — No waiting around. You get instant results and non-stop action.
 🧩 **Privy Integration** — Onboarding is seamless. New users can play without dealing with complex wallet setups.
 💰 **Instant Payouts** — Smart contracts handle rewards transparently and automatically.
-🌐 **Built on BNB Chain** — Low fees, fast transactions, and the largest blockchain ecosystem.
+🌐 **Built on BASE** — Low fees, fast transactions, and the largest blockchain ecosystem.
 🎮 **Game + Market Fusion** — It feels like a game but runs on real crypto markets.
 
 ---
@@ -54,7 +54,7 @@ It takes the excitement of trading and turns it into a game anyone can play — 
 ## **Built for the On-Chain Generation**
 
 - Fully decentralized and powered by smart contracts
-- Gas-efficient and scalable through **BNB Chain**
+- Gas-efficient and scalable through **BASE**
 - Works seamlessly on both desktop and mobile browsers
 - On-chain leaderboards and streak-based rewards coming soon
 

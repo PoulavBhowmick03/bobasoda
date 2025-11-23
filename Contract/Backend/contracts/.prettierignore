@@ -1,6 +1,0 @@
-# Global
-projects/**/coverage/
-
-# Project
-projects/bsc-library/
-projects/exchange-protocol/

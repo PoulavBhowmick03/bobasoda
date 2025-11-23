@@ -2,10 +2,10 @@
 
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
-import { useBnbPrice } from "@/hooks/useBnbPrice"
+import { useEthPrice } from "@/hooks/useEthPrice"
 import { useRoundConfig } from "@/hooks/useRoundConfig"
 import { useCurrentRound } from "@/hooks/useCurrentRound"
-import BnbPriceChart from "./bnb-price-chart"
+import EthPriceChart from "./eth-price-chart"
 
 interface MarketCardProps {
   marketName: string
@@ -15,8 +15,8 @@ interface MarketCardProps {
 }
 
 export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisRound, onTimerReset }: MarketCardProps) {
-  // Only fetch BNB price for BNB market
-  const { price: bnbPrice, isLoading: isPriceLoading } = marketName === "BNB" ? useBnbPrice() : { price: null, isLoading: false }
+  // Only fetch ETH price for ETH market
+  const { price: ethPrice, isLoading: isPriceLoading } = marketName === "ETH" ? useEthPrice() : { price: null, isLoading: false }
   // Fetch round configuration and current round data from contract
   const { intervalSeconds, bufferSeconds } = useRoundConfig()
   const { currentEpoch, roundData } = useCurrentRound()
@@ -324,11 +324,11 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
         <div className="mb-4 sm:mb-6">
           <p className="text-black opacity-90 mb-1 sm:mb-2 text-3xl sm:text-4xl md:text-5xl">{marketName}/USD</p>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black">
-            {marketName === "BNB" ? (
+            {marketName === "ETH" ? (
               isPriceLoading ? (
                 <span className="opacity-50">Loading...</span>
-              ) : bnbPrice !== null ? (
-                `$${bnbPrice.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`
+              ) : ethPrice !== null ? (
+                `$${ethPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
               ) : (
                 <span className="opacity-50">--</span>
               )
@@ -343,8 +343,8 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
 
         {/* Chart Area */}
         <div className="flex-1 mb-4 sm:mb-6 relative">
-          {marketName === "BNB" ? (
-            <BnbPriceChart currentPrice={bnbPrice} lockPrice={lockPrice} />
+          {marketName === "ETH" ? (
+            <EthPriceChart currentPrice={ethPrice} lockPrice={lockPrice} />
           ) : (
             <>
               <div className="absolute inset-0 flex items-end justify-center gap-0.5">
@@ -399,7 +399,7 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
             <div className="mb-4 sm:mb-5">
               <p className="text-black text-xs sm:text-sm opacity-75 mb-1">CURRENT ROUND {currentEpoch ? `#${currentEpoch}` : ''}</p>
               <p className="text-black font-bold text-2xl sm:text-3xl">
-                {roundData ? (Number(roundData.totalAmount) / 1e18).toFixed(4) : '0.0000'} BNB
+                {roundData ? (Number(roundData.totalAmount) / 1e18).toFixed(4) : '0.0000'} ETH
               </p>
               <p className="text-black text-xs sm:text-sm opacity-60">PRIZE POOL</p>
             </div>
@@ -413,7 +413,7 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
                     : '--'}x
                 </p>
                 <p className="text-black text-[10px] sm:text-xs opacity-60">
-                  {roundData ? (Number(roundData.bearAmount) / 1e18).toFixed(4) : '0.0000'} BNB
+                  {roundData ? (Number(roundData.bearAmount) / 1e18).toFixed(4) : '0.0000'} ETH
                 </p>
               </div>
               <div className="text-right">
@@ -424,7 +424,7 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
                     : '--'}x
                 </p>
                 <p className="text-black text-[10px] sm:text-xs opacity-60">
-                  {roundData ? (Number(roundData.bullAmount) / 1e18).toFixed(4) : '0.0000'} BNB
+                  {roundData ? (Number(roundData.bullAmount) / 1e18).toFixed(4) : '0.0000'} ETH
                 </p>
               </div>
             </div>

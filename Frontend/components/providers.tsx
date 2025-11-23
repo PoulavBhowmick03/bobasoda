@@ -1,38 +1,12 @@
 'use client';
 
-import { PrivyProvider } from '@privy-io/react-auth';
-import { WagmiProvider } from '@privy-io/wagmi';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { privyConfig } from '@/lib/privy-config';
-import { http } from 'wagmi';
-import { createConfig } from '@privy-io/wagmi';
 import { ReactNode } from 'react';
 import { defineChain } from 'viem';
+import CDPProvider from './cdp-provider';
+import { CDP_PROJECT_ID } from '@/lib/cdp-config';
 
 const queryClient = new QueryClient();
-
-// Define BSC Testnet as a proper viem chain
-export const bscTestnetChain = defineChain({
-  id: 97,
-  name: 'BNB Chain Testnet',
-  nativeCurrency: {
-    name: 'BNB',
-    symbol: 'tBNB',
-    decimals: 18,
-  },
-  rpcUrls: {
-    default: {
-      http: ['https://data-seed-prebsc-1-s1.binance.org:8545'],
-    },
-  },
-  blockExplorers: {
-    default: {
-      name: 'BscScan',
-      url: 'https://testnet.bscscan.com',
-    },
-  },
-  testnet: true,
-});
 
 // Define Base Sepolia as a proper viem chain
 export const baseSepoliaChain = defineChain({
@@ -57,40 +31,24 @@ export const baseSepoliaChain = defineChain({
   testnet: true,
 });
 
-export const wagmiConfig = createConfig({
-  chains: [baseSepoliaChain, bscTestnetChain],
-  transports: {
-    [baseSepoliaChain.id]: http('https://sepolia.base.org'),
-    [bscTestnetChain.id]: http('https://data-seed-prebsc-1-s1.binance.org:8545'),
-  },
-});
-
 export default function Providers({ children }: { children: ReactNode }) {
-  const appId = process.env.NEXT_PUBLIC_PRIVY_APP_ID || '';
-
-  // If no app ID is set, show error message
-  if (!appId) {
+  if (!CDP_PROJECT_ID) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ backgroundColor: '#27262c' }}>
-        <div className="text-center">
-          <h1 className="text-2xl font-bold text-yellow-400 mb-4">Configuration Required</h1>
-          <p className="text-yellow-400 opacity-75 mb-2">Please set your Privy App ID in the .env.local file</p>
-          <p className="text-yellow-400 opacity-75 text-sm">Get your App ID from https://dashboard.privy.io/</p>
+        <div className="text-center max-w-2xl space-y-4 text-yellow-400">
+          <h1 className="text-2xl font-bold">CDP project ID required</h1>
+          <p className="opacity-75">Set NEXT_PUBLIC_CDP_PROJECT_ID in .env.local</p>
+          <p className="text-sm opacity-60">Get your ID from https://portal.cdp.coinbase.com/</p>
         </div>
       </div>
     );
   }
 
   return (
-    <PrivyProvider
-      appId={appId}
-      config={privyConfig}
-    >
+    <CDPProvider>
       <QueryClientProvider client={queryClient}>
-        <WagmiProvider config={wagmiConfig}>
-          {children}
-        </WagmiProvider>
+        {children}
       </QueryClientProvider>
-    </PrivyProvider>
+    </CDPProvider>
   );
 }

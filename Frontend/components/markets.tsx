@@ -8,7 +8,7 @@ import Image from "next/image"
 import BottomNav from "./bottom-nav"
 
 export default function Markets() {
-  const markets = ["ETH", "BNB"]
+  const markets = ["ETH"]
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const [isMobile, setIsMobile] = useState(false)
   const [currentIndex, setCurrentIndex] = useState(0)

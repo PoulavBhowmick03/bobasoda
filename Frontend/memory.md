@@ -84,17 +84,16 @@
 
 ## Vertical Market Scrolling - COMPLETED
 - Add vertical scroll feature like Instagram/TikTok reels
-- Scroll down to see different market cards (ETH/USD, BNB/USD, etc.)
+- Scroll down to see different market cards (ETH/USD, etc.)
 - Each market card is a complete independent card with:
-  - Its own token name (ETH, BNB, etc.)
+  - Its own token name (ETH, etc.)
   - Same exact design and functionality as Phase 1
   - Independent left/right swipe functionality
   - Own endless card stack
   - Same green/red swipe indicators
   - Same weight and animations
 - **Markets implemented:**
-  - ETH/USD
-  - BNB/USD
+  - ETH/USD (Base Sepolia)
 - **Implementation:**
   - Created MarketCard component with marketName prop
   - WalletValue is now a vertical scroll container
@@ -482,7 +481,7 @@
 ## One Swipe Per Token Per Round - COMPLETED
 - Users can only swipe once per token per round
 - After swiping a token, that specific token is locked until next round
-- Other tokens remain swipeable (e.g., swipe ETH, can still swipe BNB)
+- Other tokens remain swipeable (if multiple markets are available)
 - **Implementation:**
   - `swipedMarkets` Set in WalletValue tracks which markets have been swiped
   - Passed to MarketCard as `hasSwipedThisRound` prop
@@ -499,7 +498,7 @@
 - **Round Lifecycle:**
   - Round starts (0:00): All tokens swipeable, swipedMarkets = empty
   - User swipes ETH: ETH added to swipedMarkets, ETH now blocked
-  - User can still swipe BNB (different token)
+  - User could swipe other tokens if available (different markets)
   - Timer hits 1:40 (100s): All remaining tokens blocked by time
   - Timer hits 2:00: Reset occurs, swipedMarkets cleared, all tokens swipeable again
 - **Result:**
