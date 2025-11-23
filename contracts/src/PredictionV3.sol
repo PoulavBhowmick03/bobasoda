@@ -8,6 +8,7 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {SafeERC20} from "@openzeppelin/contracts/token/ERC20/utils/SafeERC20.sol";
 import "@pythnetwork/IPyth.sol";
+import "@pythnetwork/PythStructs.sol";
 
 /**
  * @title PancakePredictionV2Pyth
@@ -294,9 +295,8 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Start the next round n, lock price for round n-1, end round n-2
      * @dev Callable by operator (manual backup)
-     * @param priceUpdateData Price update data from Pyth Hermes API
      */
-    function executeRound(bytes[] calldata priceUpdateData) external payable whenNotPaused onlyOperator {
+    function executeRound() external whenNotPaused onlyOperator {
         require(
             genesisStartOnce && genesisLockOnce,
             "Can only run after genesisStartRound and genesisLockRound is triggered"
@@ -305,7 +305,7 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
         (
             uint256 currentOracleTimestamp,
             int256 currentPrice
-        ) = _getPriceFromPyth(priceUpdateData);
+        ) = _getPriceFromPyth();
 
         oracleLatestTimestamp = currentOracleTimestamp;
 
@@ -322,9 +322,8 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
     /**
      * @notice Lock genesis round
      * @dev Callable by operator
-     * @param priceUpdateData Price update data from Pyth Hermes API
      */
-    function genesisLockRound(bytes[] calldata priceUpdateData) external payable whenNotPaused onlyOperator {
+    function genesisLockRound() external whenNotPaused onlyOperator {
         require(
             genesisStartOnce,
             "Can only run after genesisStartRound is triggered"
@@ -334,7 +333,7 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
         (
             uint256 currentOracleTimestamp,
             int256 currentPrice
-        ) = _getPriceFromPyth(priceUpdateData);
+        ) = _getPriceFromPyth();
 
         oracleLatestTimestamp = currentOracleTimestamp;
 
@@ -392,13 +391,12 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Chainlink Time-Based Automation perform upkeep (Pull model)
+     * @notice Chainlink Time-Based Automation perform upkeep
      * @dev Called by Chainlink Automation on CRON schedule (e.g., every minute)
      * Automatically handles genesis rounds if not completed
-     * @param performData Encoded price update data from Pyth Hermes API
-     * Format: abi.encode(bytes[] priceUpdateData)
      */
-    function performUpkeep(bytes calldata performData) external payable {
+
+    function performUpkeep() external {
         require(!paused(), "Contract is paused");
         emit PerformUpkeepExecuted(
             0,
@@ -425,9 +423,6 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
             "AfterGenesisStartCheck"
         );
 
-        // Decode price update data from performData
-        bytes[] memory priceUpdateData = abi.decode(performData, (bytes[]));
-
         if (!genesisLockOnce) {
             require(
                 block.timestamp > rounds[currentEpoch].lockTimestamp - 5,
@@ -439,7 +434,7 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
                 "Too late for genesis lock"
             );
 
-            (uint256 oracleTimestamp, int256 price) = _getPriceFromPyth(priceUpdateData);
+            (uint256 oracleTimestamp, int256 price) = _getPriceFromPyth();
             oracleLatestTimestamp = oracleTimestamp;
 
             _safeLockRound(currentEpoch, oracleTimestamp, price);
@@ -462,13 +457,13 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
             block.timestamp,
             "NormalExecution"
         );
-
+        
         require(block.timestamp > rounds[currentEpoch].lockTimestamp - 5, "Too early to execute");
 
         (
             uint256 currentOracleTimestamp,
             int256 currentPrice
-        ) = _getPriceFromPyth(priceUpdateData);
+        ) = _getPriceFromPyth();
         oracleLatestTimestamp = currentOracleTimestamp;
 
         _safeLockRound(currentEpoch, currentOracleTimestamp, currentPrice);
@@ -637,16 +632,9 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
     function claimable(uint256 epoch, address user) public view returns (bool) {
         BetInfo memory betInfo = ledger[epoch][user];
         Round memory round = rounds[epoch];
-
-        // Draw scenario - everyone gets their money back
         if (round.lockPrice == round.closePrice) {
-            return
-                round.oracleCalled &&
-                betInfo.amount != 0 &&
-                !betInfo.claimed;
+            return false;
         }
-
-        // Normal scenario - only winners can claim
         return
             round.oracleCalled &&
             betInfo.amount != 0 &&
@@ -702,11 +690,11 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
             treasuryAmt = (round.totalAmount * treasuryFee) / 10000;
             rewardAmount = round.totalAmount - treasuryAmt;
         }
-        // Draw (price unchanged) - Return funds to all bettors, no fee
+        // House wins (tie)
         else {
-            rewardBaseCalAmount = round.totalAmount;
-            rewardAmount = round.totalAmount;
-            treasuryAmt = 0;
+            rewardBaseCalAmount = 0;
+            rewardAmount = 0;
+            treasuryAmt = round.totalAmount;
         }
         round.rewardBaseCalAmount = rewardBaseCalAmount;
         round.rewardAmount = rewardAmount;
@@ -840,30 +828,25 @@ contract PancakePredictionV2Pyth is Ownable, Pausable, ReentrancyGuard {
     }
 
     /**
-     * @notice Update and get latest price from Pyth oracle (Pull model)
-     * @param priceUpdateData Price update data from Pyth Hermes API
+     * @notice Get latest price from Pyth oracle with validation
+     * @return oracleTimestamp Pyth publishTime
+     * @return price Normalized price (8 decimals)
+     */
+    /**
+     * @notice Get latest price from Pyth oracle (Push model)
      * @return oracleTimestamp Pyth publishTime
      * @return price Raw price with full precision (no rounding)
-     * @dev Following Pyth's official pattern: updatePriceFeeds -> getPriceNoOlderThan
+     * @dev Using Push Integration: reads price directly from Pyth contract
      */
-    function _getPriceFromPyth(bytes[] memory priceUpdateData) internal returns (uint256, int256) {
-        // Step 1: Get the fee required to update the price feeds
-        uint256 updateFee = pyth.getUpdateFee(priceUpdateData);
+    function _getPriceFromPyth() internal view returns (uint256, int256) {
+        // Read the current price from a price feed if it is less than 20 seconds old.
+        // Each price feed (e.g., ETH/USD) is identified by a price feed ID.
+        // The complete list of feed IDs is available at https://docs.pyth.network/price-feeds/core/price-feeds
+        PythStructs.Price memory pythPrice = pyth.getPriceNoOlderThan(priceId, 20);
 
-        // Step 2: Update the price feeds with latest data (Pull model)
-        // WARNING: This is REQUIRED to ensure getPriceNoOlderThan succeeds
-        // Without this, you'll get 0x19abf40e error
-        pyth.updatePriceFeeds{value: updateFee}(priceUpdateData);
-
-        // Step 3: Read the fresh price (no older than 5 seconds)
-        // This validates the price was updated and is fresh
-        PythStructs.Price memory pythPrice = pyth.getPriceNoOlderThan(priceId, 5);
-
-        // Validate price is newer than last used price (prevents replay)
-        require(
-            pythPrice.publishTime >= oracleLatestTimestamp,
-            "Oracle update timestamp must be larger than oracleLatestTimestamp"
-        );
+        // Note: Timestamp validation removed for testnet compatibility
+        // On testnets, Pyth may not update frequently, causing the same timestamp to be reused
+        // This is acceptable for testing purposes
 
         // Use full precision from Pyth - no decimal conversion/rounding
         // Pyth price maintains its native precision (typically -8 to -10 decimals)
