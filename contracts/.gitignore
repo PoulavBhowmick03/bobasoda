@@ -1,0 +1,29 @@
+# Compiler files
+cache/
+out/
+
+# Ignores development broadcast logs
+!/broadcast
+/broadcast/*/31337/
+/broadcast/**/dry-run/
+
+# Docs
+docs/
+
+# Dotenv file
+.env
+.env.local
+
+# Dependencies
+lib/
+
+# IDE
+.vscode/
+.idea/
+
+# Node modules (if using JS/TS tools)
+node_modules/
+
+# Foundry specific
+lcov.info
+foundry-lock.json
