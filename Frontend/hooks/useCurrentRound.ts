@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPublicClient, http } from 'viem'
 import { baseSepoliaChain } from '@/components/providers'
 
-const PREDICTION_CONTRACT = '0x58Ccb2418E0b48D9d3b19a084395B69a1235DcAE' as const
+const PREDICTION_CONTRACT = process.env.NEXT_PUBLIC_PREDICTION_CONTRACT as `0x${string}` | undefined
 
 // ABI for reading current epoch and round data, plus events
 const PREDICTION_ABI = [
@@ -105,6 +105,14 @@ export function useCurrentRound() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!PREDICTION_CONTRACT || PREDICTION_CONTRACT === '0x0000000000000000000000000000000000000000') {
+      setError('Prediction contract address is not configured. Set NEXT_PUBLIC_PREDICTION_CONTRACT.')
+      setIsLoading(false)
+      return
+    }
+
+    const contractAddress = PREDICTION_CONTRACT as `0x${string}`
+
     const publicClient = createPublicClient({
       chain: baseSepoliaChain,
       transport: http('https://sepolia.base.org'),
@@ -114,7 +122,7 @@ export function useCurrentRound() {
       try {
         // Get current epoch
         const epoch = await publicClient.readContract({
-          address: PREDICTION_CONTRACT,
+          address: contractAddress,
           abi: PREDICTION_ABI,
           functionName: 'currentEpoch',
         })
@@ -132,7 +140,7 @@ export function useCurrentRound() {
 
         // Get round data for current epoch
         const round = await publicClient.readContract({
-          address: PREDICTION_CONTRACT,
+          address: contractAddress,
           abi: PREDICTION_ABI,
           functionName: 'rounds',
           args: [epoch],
@@ -174,7 +182,7 @@ export function useCurrentRound() {
         setError(null)
       } catch (err) {
         console.error('❌ Error fetching current round:', err)
-        setError('Failed to fetch round data')
+        setError('Failed to fetch round data. Confirm the contract address and that it is deployed on Base Sepolia.')
         setIsLoading(false)
       }
     }
@@ -187,7 +195,7 @@ export function useCurrentRound() {
 
     // Watch for StartRound events
     const unwatchStartRound = publicClient.watchContractEvent({
-      address: PREDICTION_CONTRACT,
+      address: contractAddress,
       abi: PREDICTION_ABI,
       eventName: 'StartRound',
       onLogs: (logs) => {
@@ -198,7 +206,7 @@ export function useCurrentRound() {
 
     // Watch for LockRound events
     const unwatchLockRound = publicClient.watchContractEvent({
-      address: PREDICTION_CONTRACT,
+      address: contractAddress,
       abi: PREDICTION_ABI,
       eventName: 'LockRound',
       onLogs: (logs) => {
@@ -209,7 +217,7 @@ export function useCurrentRound() {
 
     // Watch for EndRound events
     const unwatchEndRound = publicClient.watchContractEvent({
-      address: PREDICTION_CONTRACT,
+      address: contractAddress,
       abi: PREDICTION_ABI,
       eventName: 'EndRound',
       onLogs: (logs) => {
@@ -220,7 +228,7 @@ export function useCurrentRound() {
 
     // Watch for BetBull events - update pool in realtime
     const unwatchBetBull = publicClient.watchContractEvent({
-      address: PREDICTION_CONTRACT,
+      address: contractAddress,
       abi: PREDICTION_ABI,
       eventName: 'BetBull',
       onLogs: (logs) => {
@@ -231,7 +239,7 @@ export function useCurrentRound() {
 
     // Watch for BetBear events - update pool in realtime
     const unwatchBetBear = publicClient.watchContractEvent({
-      address: PREDICTION_CONTRACT,
+      address: contractAddress,
       abi: PREDICTION_ABI,
       eventName: 'BetBear',
       onLogs: (logs) => {

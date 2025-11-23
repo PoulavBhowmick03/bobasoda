@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { createPublicClient, http } from 'viem'
 import { baseSepoliaChain } from '@/components/providers'
 
-const PREDICTION_CONTRACT = '0x58Ccb2418E0b48D9d3b19a084395B69a1235DcAE' as const
+const PREDICTION_CONTRACT = process.env.NEXT_PUBLIC_PREDICTION_CONTRACT as `0x${string}` | undefined
 
 // ABI for reading public variables from Prediction contract
 const PREDICTION_ABI = [
@@ -31,6 +31,14 @@ export function useRoundConfig() {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (!PREDICTION_CONTRACT || PREDICTION_CONTRACT === '0x0000000000000000000000000000000000000000') {
+      setError('Prediction contract address is not configured. Set NEXT_PUBLIC_PREDICTION_CONTRACT.')
+      setIsLoading(false)
+      return
+    }
+
+    const contractAddress = PREDICTION_CONTRACT as `0x${string}`
+
     const publicClient = createPublicClient({
       chain: baseSepoliaChain,
       transport: http('https://sepolia.base.org'),
@@ -42,12 +50,12 @@ export function useRoundConfig() {
 
         const [interval, buffer] = await Promise.all([
           publicClient.readContract({
-            address: PREDICTION_CONTRACT,
+            address: contractAddress,
             abi: PREDICTION_ABI,
             functionName: 'intervalSeconds',
           }),
           publicClient.readContract({
-            address: PREDICTION_CONTRACT,
+            address: contractAddress,
             abi: PREDICTION_ABI,
             functionName: 'bufferSeconds',
           }),

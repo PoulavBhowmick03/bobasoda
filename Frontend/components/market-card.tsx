@@ -2,9 +2,9 @@
 
 import { ArrowUp, ArrowDown } from "lucide-react"
 import { useState, useRef, useEffect } from "react"
-import { useEthPrice } from "@/hooks/useEthPrice"
-import { useRoundConfig } from "@/hooks/useRoundConfig"
+import { usePriceWithFallback } from "@/hooks/usePriceWithFallback"
 import { useCurrentRound } from "@/hooks/useCurrentRound"
+import { SUPPORTED_TOKENS } from "@/lib/pyth-config"
 import EthPriceChart from "./eth-price-chart"
 
 interface MarketCardProps {
@@ -15,10 +15,14 @@ interface MarketCardProps {
 }
 
 export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisRound, onTimerReset }: MarketCardProps) {
-  // Only fetch ETH price for ETH market
-  const { price: ethPrice, isLoading: isPriceLoading } = marketName === "ETH" ? useEthPrice() : { price: null, isLoading: false }
+  // Check if market is supported by Pyth
+  const isSupported = marketName in SUPPORTED_TOKENS
+  const tokenSymbol = isSupported ? marketName as keyof typeof SUPPORTED_TOKENS : 'ETH'
+
+  // Fetch price with smart fallback (Pyth primary, Chainlink backup for ETH)
+  const { price, source, isLoading: isPriceLoading, error: priceError } = usePriceWithFallback(tokenSymbol)
+
   // Fetch round configuration and current round data from contract
-  const { intervalSeconds, bufferSeconds } = useRoundConfig()
   const { currentEpoch, roundData } = useCurrentRound()
   const [currentCardId, setCurrentCardId] = useState(1)
   const [dragOffset, setDragOffset] = useState(0)
@@ -136,8 +140,6 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
     }
   }, [])
 
-  const periods = ["1h", "8h", "1d", "1w", "1m", "6m", "1y"]
-
   const cards = [currentCardId, currentCardId + 1, currentCardId + 2]
 
   const handleDragStart = (clientX: number) => {
@@ -207,10 +209,6 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
 
   const iconOpacity = Math.min(Math.abs(dragOffset) / 80, 0.6)
   const iconScale = Math.min(Math.abs(dragOffset) / 80, 1)
-
-  // Calculate lock threshold based on contract timing
-  // Lock happens at intervalSeconds (e.g., 60s), which is 50% of total round duration (120s)
-  const lockThresholdPercent = roundData ? 50 : 50 // Always 50% since round is 2x interval
 
   // Block swiping when in lock phase OR if already swiped this round
   // Lock phase starts when current time >= lockTimestamp
@@ -322,18 +320,23 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
 
         {/* Wallet Value */}
         <div className="mb-4 sm:mb-6">
-          <p className="text-black opacity-90 mb-1 sm:mb-2 text-3xl sm:text-4xl md:text-5xl">{marketName}/USD</p>
+          <div className="flex items-center gap-2 mb-1 sm:mb-2">
+            <p className="text-black opacity-90 text-3xl sm:text-4xl md:text-5xl">{marketName}/USD</p>
+            {source && (
+              <span className="text-xs px-2 py-0.5 rounded-full bg-black bg-opacity-10 text-black opacity-60">
+                {source === 'pyth' ? '⚡ Pyth' : '🔗 Chainlink'}
+              </span>
+            )}
+          </div>
           <h2 className="text-3xl sm:text-4xl md:text-5xl font-bold text-black">
-            {marketName === "ETH" ? (
-              isPriceLoading ? (
-                <span className="opacity-50">Loading...</span>
-              ) : ethPrice !== null ? (
-                `$${ethPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
-              ) : (
-                <span className="opacity-50">--</span>
-              )
+            {isPriceLoading ? (
+              <span className="opacity-50">Loading...</span>
+            ) : priceError ? (
+              <span className="opacity-50 text-lg">Error loading price</span>
+            ) : price !== null ? (
+              `$${price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
             ) : (
-              <span className="opacity-50">Coming Soon</span>
+              <span className="opacity-50">--</span>
             )}
           </h2>
         </div>
@@ -343,8 +346,8 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
 
         {/* Chart Area */}
         <div className="flex-1 mb-4 sm:mb-6 relative">
-          {marketName === "ETH" ? (
-            <EthPriceChart currentPrice={ethPrice} lockPrice={lockPrice} />
+          {isSupported ? (
+            <EthPriceChart currentPrice={price} lockPrice={lockPrice} />
           ) : (
             <>
               <div className="absolute inset-0 flex items-end justify-center gap-0.5">
