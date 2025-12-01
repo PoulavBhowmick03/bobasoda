@@ -9,12 +9,13 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@base-org/account": "^2.5.0",
+    "@base-org/account-ui": "^1.0.1",
     "@coinbase/cdp-core": "^0.0.67",
     "@coinbase/cdp-hooks": "^0.0.67",
     "@coinbase/cdp-react": "^0.0.67",
+    "@farcaster/miniapp-sdk": "^0.2.1",
     "@filoz/synapse-sdk": "^0.36.0",
-    "@privy-io/react-auth": "^3.8.0",
-    "@privy-io/wagmi": "^2.0.3",
     "@pythnetwork/hermes-client": "^2.1.0",
     "@pythnetwork/pyth-evm-js": "^2.0.0",
     "@solana-program/system": "^0.10.0",

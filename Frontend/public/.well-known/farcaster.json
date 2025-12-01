@@ -1,0 +1,25 @@
+{
+  "accountAssociation": {
+    "header": "",
+    "payload": "",
+    "signature": ""
+  },
+  "baseBuilder": {
+    "ownerAddress": "0xYOUR_WALLET_ADDRESS"
+  },
+  "miniapp": {
+    "version": "1",
+    "name": "BobaSoda",
+    "homeUrl": "https://bobasoda.app",
+    "iconUrl": "https://bobasoda.app/bobasoda-logo.png",
+    "splashImageUrl": "https://bobasoda.app/bobasoda-logo.png",
+    "splashBackgroundColor": "#27262c",
+    "subtitle": "Predict crypto prices and win",
+    "description": "BobaSoda is a crypto prediction game. Bet on whether ETH, BTC, or BNB will go up or down and win rewards.",
+    "primaryCategory": "games",
+    "tags": ["crypto", "prediction", "betting", "defi", "base"],
+    "ogTitle": "BobaSoda - Crypto Prediction Game",
+    "ogDescription": "Predict crypto prices and win rewards on Base",
+    "ogImageUrl": "https://bobasoda.app/og-image.png"
+  }
+}

@@ -10,8 +10,27 @@ const bungee = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Wallet App",
-  description: "Crypto wallet and trading interface",
+  title: "BobaSoda - Crypto Prediction Game",
+  description: "Predict crypto prices and win rewards on Base",
+  openGraph: {
+    title: "BobaSoda - Crypto Prediction Game",
+    description: "Predict crypto prices and win rewards on Base",
+    images: ["/bobasoda-logo.png"],
+  },
+  other: {
+    "fc:miniapp": JSON.stringify({
+      version: "next",
+      imageUrl: "https://bobasoda.app/bobasoda-logo.png",
+      button: {
+        title: "Play Now",
+        action: {
+          type: "launch_miniapp",
+          name: "BobaSoda",
+          url: "https://bobasoda.app",
+        },
+      },
+    }),
+  },
 };
 
 export const viewport: Viewport = {

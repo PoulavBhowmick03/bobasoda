@@ -1,14 +1,14 @@
 'use client'
 
 /**
- * Privy Transaction Hook
+ * Base Account Transaction Hook
  *
- * Handles betting transactions using Privy embedded wallets.
+ * Handles betting transactions using Base Account wallets.
  * Sends direct transactions to the Prediction contract.
  */
 
-import { useState, useMemo } from 'react'
-import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { useState } from 'react'
+import { useBaseAccount } from '@/lib/base-account'
 import { encodeFunctionData, parseEther } from 'viem'
 import { PREDICTION_ABI, PREDICTION_ADDRESS } from '@/lib/prediction-contract'
 
@@ -20,28 +20,22 @@ interface BetParams {
 }
 
 export function useCDPTransaction() {
-  const { authenticated } = usePrivy()
-  const { wallets } = useWallets()
+  const { authenticated, address, getProvider } = useBaseAccount()
   const [txHash, setTxHash] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [isPending, setIsPending] = useState(false)
 
-  const primaryWallet = useMemo(() => {
-    if (!wallets || wallets.length === 0) return null
-    return wallets.find((w) => w.walletClientType === 'privy') || wallets[0]
-  }, [wallets])
-
   /**
-   * Send a transaction using the embedded wallet provider
+   * Send a transaction using the Base Account provider
    */
   const sendTx = async (to: `0x${string}`, data: `0x${string}`, value: bigint) => {
-    if (!authenticated || !primaryWallet) {
+    if (!authenticated || !address) {
       throw new Error('Wallet not connected')
     }
-    const provider = await primaryWallet.getEthereumProvider?.()
-    const from = primaryWallet.address as `0x${string}`
+    const provider = getProvider()
+    const from = address as `0x${string}`
     if (!provider || !from) {
-      throw new Error('No provider available from Privy wallet')
+      throw new Error('No provider available from Base Account')
     }
     const valueHex = `0x${value.toString(16)}`
     const tx = {
@@ -79,7 +73,7 @@ export function useCDPTransaction() {
       return { success: true, hash }
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to place bet'
-      console.error('❌ Bet error:', errorMessage)
+      console.error('Bet error:', errorMessage)
       setError(errorMessage)
       setIsPending(false)
       return { success: false, error: errorMessage }
@@ -109,7 +103,7 @@ export function useCDPTransaction() {
       return { success: true, hash }
     } catch (err: any) {
       const errorMessage = err?.message || 'Failed to claim rewards'
-      console.error('❌ Claim error:', errorMessage)
+      console.error('Claim error:', errorMessage)
       setError(errorMessage)
       setIsPending(false)
       return { success: false, error: errorMessage }

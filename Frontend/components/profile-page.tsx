@@ -5,11 +5,17 @@ import BottomNav from "./bottom-nav"
 import { useEffect, useMemo, useState } from "react"
 import { createPublicClient, http, formatEther } from "viem"
 import { baseSepoliaChain } from "./providers"
-import { usePrivy, useWallets } from "@privy-io/react-auth"
+import { useBaseAccount } from "@/lib/base-account"
+import dynamic from "next/dynamic"
+
+// Dynamically import the SignInWithBaseButton to avoid SSR issues
+const SignInWithBaseButton = dynamic(
+  () => import("@base-org/account-ui/react").then((mod) => mod.SignInWithBaseButton),
+  { ssr: false, loading: () => <div className="w-full h-12 bg-yellow-400/20 rounded-xl animate-pulse" /> }
+)
 
 export default function ProfilePage() {
-  const { ready, authenticated, login, logout, user } = usePrivy()
-  const { wallets } = useWallets()
+  const { ready, authenticated, login, logout, address } = useBaseAccount()
   const [walletAddress, setWalletAddress] = useState<string>("")
   const [balance, setBalance] = useState<string>("0.00")
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false)
@@ -20,24 +26,21 @@ export default function ProfilePage() {
     }), [])
 
   useEffect(() => {
-    if (!authenticated || wallets.length === 0) {
+    if (!authenticated || !address) {
       setWalletAddress("")
       setBalance("0.00")
       return
     }
 
-    const embeddedWallet = wallets.find((w) => w.walletClientType === "privy") || wallets[0]
-    if (embeddedWallet) {
-      setWalletAddress(embeddedWallet.address)
-      fetchBalance(embeddedWallet.address)
-    }
-  }, [authenticated, wallets])
+    setWalletAddress(address)
+    fetchBalance(address)
+  }, [authenticated, address])
 
-  const fetchBalance = async (address: string) => {
+  const fetchBalance = async (addr: string) => {
     setIsLoadingBalance(true)
     try {
       const balanceWei = await publicClient.getBalance({
-        address: address as `0x${string}`,
+        address: addr as `0x${string}`,
       })
       const balanceFormatted = formatEther(balanceWei)
       const balanceFinal = parseFloat(balanceFormatted).toFixed(4)
@@ -87,18 +90,18 @@ export default function ProfilePage() {
               <p className="text-xs uppercase tracking-[0.18em] text-yellow-300">Welcome to Bobasoda</p>
               <h1 className="text-3xl sm:text-4xl font-bold text-yellow-400">Sign in to play</h1>
               <p className="text-sm sm:text-base text-yellow-100/80">
-                Create an embedded wallet with Privy and start predicting.
+                Sign in with your Base Account and start predicting.
               </p>
             </div>
             <div className="flex flex-col gap-3 items-center">
-              <button
+              <SignInWithBaseButton
+                align="center"
+                variant="solid"
+                colorScheme="dark"
                 onClick={handleConnectWallet}
-                className="w-full font-bold py-4 rounded-2xl text-lg transition justify-center shadow-[0_10px_30px_rgba(219,187,26,0.25)] bg-[#dbbb1a] hover:bg-[#c5a70f] text-[#0a0b0d]"
-              >
-                Continue with Privy
-              </button>
+              />
               <p className="text-xs text-yellow-100/70">
-                Powered by Privy embedded wallets • Base Sepolia testnet
+                Powered by Base Account • Base Sepolia testnet
               </p>
             </div>
           </div>

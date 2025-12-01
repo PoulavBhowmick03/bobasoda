@@ -30,7 +30,20 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
   const [isDragging, setIsDragging] = useState(false)
   const [rotation, setRotation] = useState(0)
   const [isMagnetized, setIsMagnetized] = useState(false)
-  const [timerProgress, setTimerProgress] = useState(0)
+  // Initialize timer from localStorage if available (for smoother refresh experience)
+  const [timerProgress, setTimerProgress] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const savedProgress = localStorage.getItem('bobasoda_timer_progress')
+      const savedEpoch = localStorage.getItem('bobasoda_round_epoch')
+
+      // Only use saved progress if it's from the same epoch
+      // This will be validated again when roundData loads
+      if (savedProgress && savedEpoch) {
+        return parseFloat(savedProgress)
+      }
+    }
+    return 0
+  })
   const [lockPrice, setLockPrice] = useState<number | null>(null)
   const [showOnboarding, setShowOnboarding] = useState(false)
   const [onboardingTimeLeft, setOnboardingTimeLeft] = useState(30)
@@ -49,7 +62,19 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
   useEffect(() => {
     if (!roundData) {
       console.log('⏸️ Timer waiting for round data...')
+      // Don't reset timer to 0 while waiting for data - keep last known state
       return
+    }
+
+    // Check if the saved epoch matches current epoch, if not clear localStorage
+    if (typeof window !== 'undefined' && currentEpoch !== null) {
+      const savedEpoch = localStorage.getItem('bobasoda_round_epoch')
+      if (savedEpoch && parseInt(savedEpoch) !== currentEpoch) {
+        console.log(`🔄 Round changed from ${savedEpoch} to ${currentEpoch}, clearing saved timer`)
+        localStorage.removeItem('bobasoda_timer_progress')
+        localStorage.removeItem('bobasoda_round_epoch')
+        setTimerProgress(0)
+      }
     }
 
     // Immediately sync when round data changes (from contract events)
@@ -63,7 +88,16 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
       const elapsed = now - roundData.startTimestamp
       const progress = Math.min((elapsed / roundDuration) * 100, 100)
 
-      setTimerProgress(Math.max(0, progress))
+      // Only update if we have valid timestamps
+      if (roundDuration > 0 && roundData.startTimestamp > 0) {
+        const validProgress = Math.max(0, progress)
+        setTimerProgress(validProgress)
+        // Save to localStorage for smoother refresh experience
+        if (typeof window !== 'undefined' && currentEpoch !== null) {
+          localStorage.setItem('bobasoda_timer_progress', validProgress.toString())
+          localStorage.setItem('bobasoda_round_epoch', currentEpoch.toString())
+        }
+      }
 
       // Debug log every 10 seconds
       if (Math.floor(now) % 10 === 0) {
@@ -89,6 +123,11 @@ export default function MarketCard({ marketName, onSwipeComplete, hasSwipedThisR
           console.log(`   Winner: ${winner} (Close: $${closePrice.toFixed(4)} vs Lock: $${lockPrice.toFixed(4)}, Diff: ${diff > 0 ? '+' : ''}${diff.toFixed(4)})`)
         }
         setLockPrice(null)
+        // Clear saved timer state when round ends
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('bobasoda_timer_progress')
+          localStorage.removeItem('bobasoda_round_epoch')
+        }
         onTimerReset()
       }
     }

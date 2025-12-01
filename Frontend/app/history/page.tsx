@@ -3,18 +3,12 @@
 import BottomNav from "@/components/bottom-nav"
 import { useViewportHeight } from "@/hooks/useViewportHeight"
 import { useBettingHistory } from "@/hooks/useBettingHistory"
-import { usePrivy, useWallets } from "@privy-io/react-auth"
-import { useMemo } from "react"
+import { useBaseAccount } from "@/lib/base-account"
 
 export default function History() {
   const viewportHeight = useViewportHeight()
-  const { authenticated } = usePrivy()
-  const { wallets } = useWallets()
-  const evmAddress = useMemo(() => {
-    if (!authenticated || wallets.length === 0) return ''
-    const embedded = wallets.find((w) => w.walletClientType === 'privy') || wallets[0]
-    return embedded?.address || ''
-  }, [authenticated, wallets])
+  const { authenticated, address } = useBaseAccount()
+  const evmAddress = authenticated && address ? address : ''
   const { history, isLoading, clearHistory } = useBettingHistory()
 
   const formatAmount = (amount: string) => {
@@ -108,7 +102,7 @@ export default function History() {
                         <span className={`font-bold text-lg ${
                           bet.direction === 'bull' ? 'text-green-400' : 'text-red-400'
                         }`}>
-                          {bet.direction === 'bull' ? '📈 BULL' : '📉 BEAR'}
+                          {bet.direction === 'bull' ? 'BULL' : 'BEAR'}
                         </span>
                         <p className="text-sm text-gray-400">Round #{bet.epoch}</p>
                       </div>
@@ -121,7 +115,7 @@ export default function History() {
                         </p>
                       </div>
                     </div>
-                    
+
                     {bet.lockPrice && bet.closePrice && (
                       <div className="text-xs text-gray-400 mt-2 space-y-1">
                         <p>Lock: ${bet.lockPrice.toFixed(2)}</p>
@@ -133,11 +127,11 @@ export default function History() {
                         )}
                       </div>
                     )}
-                    
+
                     <p className="text-xs text-gray-500 mt-2">
                       {formatDate(bet.timestamp)}
                     </p>
-                    
+
                     {bet.txHash && (
                       <p className="text-xs text-blue-400 mt-1 truncate">
                         Tx: {bet.txHash}

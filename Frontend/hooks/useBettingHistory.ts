@@ -1,7 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import { usePrivy, useWallets } from '@privy-io/react-auth'
+import { useEffect, useState } from 'react'
+import { useBaseAccount } from '@/lib/base-account'
 
 export interface BetRecord {
   id: string
@@ -19,16 +19,11 @@ export interface BetRecord {
 const STORAGE_KEY = 'bobasoda_betting_history'
 
 export function useBettingHistory() {
-  const { authenticated } = usePrivy()
-  const { wallets } = useWallets()
+  const { authenticated, address } = useBaseAccount()
   const [history, setHistory] = useState<BetRecord[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
-  const evmAddress = useMemo(() => {
-    if (!authenticated || wallets.length === 0) return ''
-    const embedded = wallets.find((w) => w.walletClientType === 'privy') || wallets[0]
-    return embedded?.address || ''
-  }, [authenticated, wallets])
+  const evmAddress = authenticated && address ? address : ''
 
   // Load history from localStorage
   useEffect(() => {
