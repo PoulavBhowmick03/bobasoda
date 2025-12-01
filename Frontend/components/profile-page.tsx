@@ -8,35 +8,40 @@ import { baseSepoliaChain } from "./providers"
 import { useBaseAccount } from "@/lib/base-account"
 import dynamic from "next/dynamic"
 
-// Dynamically import the SignInWithBaseButton to avoid SSR issues
 const SignInWithBaseButton = dynamic(
   () => import("@base-org/account-ui/react").then((mod) => mod.SignInWithBaseButton),
   { ssr: false, loading: () => <div className="w-full h-12 bg-yellow-400/20 rounded-xl animate-pulse" /> }
 )
 
 export default function ProfilePage() {
-  const { ready, authenticated, login, logout, address } = useBaseAccount()
+  const { ready, authenticated, login, logout, address, user, isInMiniApp } = useBaseAccount()
   const [walletAddress, setWalletAddress] = useState<string>("")
   const [balance, setBalance] = useState<string>("0.00")
   const [isLoadingBalance, setIsLoadingBalance] = useState<boolean>(false)
 
   const publicClient = useMemo(() => createPublicClient({
-      chain: baseSepoliaChain,
-      transport: http(),
-    }), [])
+    chain: baseSepoliaChain,
+    transport: http(),
+  }), [])
 
   useEffect(() => {
-    if (!authenticated || !address) {
+    if (!authenticated) {
       setWalletAddress("")
       setBalance("0.00")
       return
     }
 
-    setWalletAddress(address)
-    fetchBalance(address)
-  }, [authenticated, address])
+    if (address) {
+      setWalletAddress(address)
+      fetchBalance(address)
+    } else if (isInMiniApp && user) {
+      // In Mini App - use FID as identifier
+      setWalletAddress(`fid:${user.fid}`)
+    }
+  }, [authenticated, address, isInMiniApp, user])
 
   const fetchBalance = async (addr: string) => {
+    if (addr.startsWith('fid:')) return // Can't fetch balance for FID
     setIsLoadingBalance(true)
     try {
       const balanceWei = await publicClient.getBalance({
@@ -74,13 +79,41 @@ export default function ProfilePage() {
     return (
       <div className="relative h-full w-full">
         <div className="h-full w-full flex items-center justify-center" style={{ backgroundColor: '#27262c' }}>
-          <p className="text-yellow-400 text-xl">Loading wallet...</p>
+          <p className="text-yellow-400 text-xl">Loading...</p>
         </div>
       </div>
     )
   }
 
-  if (!authenticated || !walletAddress) {
+  // In Mini App - show user profile directly
+  if (isInMiniApp && authenticated && user) {
+    return (
+      <div className="relative h-full w-full">
+        <div className="h-full w-full flex flex-col" style={{ backgroundColor: '#27262c' }}>
+          <div className="flex-1 flex flex-col items-center justify-center p-6">
+            {user.pfpUrl && (
+              <img
+                src={user.pfpUrl}
+                alt="Profile"
+                className="w-24 h-24 rounded-full mb-4 border-2 border-yellow-400"
+              />
+            )}
+            <h1 className="text-2xl font-bold text-yellow-400 mb-2">
+              {user.displayName || user.username || `FID: ${user.fid}`}
+            </h1>
+            {user.username && (
+              <p className="text-yellow-100/70">@{user.username}</p>
+            )}
+            <p className="text-sm text-gray-400 mt-2">FID: {user.fid}</p>
+          </div>
+        </div>
+        <BottomNav />
+      </div>
+    )
+  }
+
+  // Not authenticated - show sign in
+  if (!authenticated) {
     return (
       <div className="relative h-full w-full overflow-hidden" style={{ backgroundColor: '#0a0b0d' }}>
         <div className="absolute inset-0 opacity-60" style={{ background: 'radial-gradient(circle at 20% 20%, rgba(219,187,26,0.35), transparent 40%), radial-gradient(circle at 80% 30%, rgba(255,255,255,0.08), transparent 35%), radial-gradient(circle at 50% 80%, rgba(219,187,26,0.18), transparent 40%)' }} />
@@ -111,6 +144,7 @@ export default function ProfilePage() {
     )
   }
 
+  // Authenticated with wallet address
   return (
     <div className="relative h-full w-full">
       <Profile

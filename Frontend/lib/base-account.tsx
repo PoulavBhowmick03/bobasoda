@@ -2,10 +2,19 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback, ReactNode, useRef } from 'react'
 
+interface MiniAppUser {
+  fid: number
+  username?: string
+  displayName?: string
+  pfpUrl?: string
+}
+
 interface BaseAccountContextType {
   ready: boolean
   authenticated: boolean
   address: string | null
+  user: MiniAppUser | null
+  isInMiniApp: boolean
   login: () => Promise<void>
   logout: () => void
   getProvider: () => any
@@ -17,41 +26,68 @@ export function BaseAccountProvider({ children }: { children: ReactNode }) {
   const [ready, setReady] = useState(false)
   const [authenticated, setAuthenticated] = useState(false)
   const [address, setAddress] = useState<string | null>(null)
+  const [user, setUser] = useState<MiniAppUser | null>(null)
+  const [isInMiniApp, setIsInMiniApp] = useState(false)
   const sdkRef = useRef<any>(null)
 
   useEffect(() => {
-    // Only initialize on client side
     const initSDK = async () => {
-      // Set ready immediately to prevent blank screen
-      setReady(true)
-
       try {
-        const { createBaseAccountSDK } = await import('@base-org/account')
-        sdkRef.current = createBaseAccountSDK({
-          appName: 'BobaSoda',
-          appLogoUrl: 'https://bobasodamini.vercel.app/bobasoda-logo.png',
-        })
+        // First check if we're in a Mini App context
+        const { sdk } = await import('@farcaster/miniapp-sdk')
+        const inMiniApp = await sdk.isInMiniApp()
+        setIsInMiniApp(inMiniApp)
 
-        // Check if already connected from previous session
-        try {
-          const provider = sdkRef.current.getProvider()
-          const accounts = await provider.request({ method: 'eth_accounts' }) as string[]
-          if (accounts && accounts.length > 0) {
-            setAddress(accounts[0])
+        if (inMiniApp) {
+          // In Mini App - get user context directly
+          const context = await sdk.context
+          if (context?.user) {
+            setUser({
+              fid: context.user.fid,
+              username: context.user.username,
+              displayName: context.user.displayName,
+              pfpUrl: context.user.pfpUrl,
+            })
             setAuthenticated(true)
           }
-        } catch (error) {
-          console.debug('No existing connection:', error)
+          // Signal app is ready
+          await sdk.actions.ready()
+        } else {
+          // Not in Mini App - use Base Account SDK for sign-in
+          try {
+            const { createBaseAccountSDK } = await import('@base-org/account')
+            sdkRef.current = createBaseAccountSDK({
+              appName: 'BobaSoda',
+              appLogoUrl: 'https://bobasodamini.vercel.app/bobasoda-logo.png',
+            })
+
+            // Check if already connected
+            const provider = sdkRef.current.getProvider()
+            const accounts = await provider.request({ method: 'eth_accounts' }) as string[]
+            if (accounts && accounts.length > 0) {
+              setAddress(accounts[0])
+              setAuthenticated(true)
+            }
+          } catch (error) {
+            console.debug('Base Account SDK not available:', error)
+          }
         }
       } catch (error) {
-        console.error('Failed to initialize Base Account SDK:', error)
+        console.error('SDK initialization error:', error)
       }
+
+      setReady(true)
     }
 
     initSDK()
   }, [])
 
   const login = useCallback(async () => {
+    if (isInMiniApp) {
+      // Already authenticated in Mini App
+      return
+    }
+
     if (!sdkRef.current) {
       throw new Error('SDK not initialized')
     }
@@ -67,7 +103,7 @@ export function BaseAccountProvider({ children }: { children: ReactNode }) {
           capabilities: {
             signInWithEthereum: {
               nonce,
-              chainId: '0x14a34', // Base Sepolia (84532 in hex)
+              chainId: '0x14a34',
             },
           },
         }],
@@ -85,21 +121,16 @@ export function BaseAccountProvider({ children }: { children: ReactNode }) {
       console.error('Login failed:', error)
       throw error
     }
-  }, [])
+  }, [isInMiniApp])
 
   const logout = useCallback(() => {
+    if (isInMiniApp) return // Can't logout from Mini App context
     setAuthenticated(false)
     setAddress(null)
-    // Clear any stored session
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('base_account_session')
-    }
-  }, [])
+  }, [isInMiniApp])
 
   const getProvider = useCallback(() => {
-    if (!sdkRef.current) {
-      return null
-    }
+    if (!sdkRef.current) return null
     return sdkRef.current.getProvider()
   }, [])
 
@@ -109,6 +140,8 @@ export function BaseAccountProvider({ children }: { children: ReactNode }) {
         ready,
         authenticated,
         address,
+        user,
+        isInMiniApp,
         login,
         logout,
         getProvider,
@@ -125,15 +158,4 @@ export function useBaseAccount() {
     throw new Error('useBaseAccount must be used within a BaseAccountProvider')
   }
   return context
-}
-
-export function useBaseWallet() {
-  const { authenticated, address, getProvider } = useBaseAccount()
-
-  return {
-    authenticated,
-    address,
-    getProvider,
-    walletClientType: 'base-account' as const,
-  }
 }
