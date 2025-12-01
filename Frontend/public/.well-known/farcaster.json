@@ -15,7 +15,7 @@
     "description": "BobaSoda is a crypto prediction game. Bet on whether ETH, BTC, or BNB will go up or down and win rewards.",
     "primaryCategory": "games",
     "tags": ["crypto", "prediction", "betting", "defi", "base"],
-    "ogTitle": "BobaSoda - Crypto Prediction Game",
+    "ogTitle": "BobaSoda",
     "ogDescription": "Predict crypto prices and win rewards on Base",
     "ogImageUrl": "https://bobasodamini.vercel.app/og-image.png"
   }

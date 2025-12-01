@@ -22,11 +22,14 @@ export function BaseAccountProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     // Only initialize on client side
     const initSDK = async () => {
+      // Set ready immediately to prevent blank screen
+      setReady(true)
+
       try {
         const { createBaseAccountSDK } = await import('@base-org/account')
         sdkRef.current = createBaseAccountSDK({
           appName: 'BobaSoda',
-          appLogoUrl: 'https://bobasoda.app/bobasoda-logo.png',
+          appLogoUrl: 'https://bobasodamini.vercel.app/bobasoda-logo.png',
         })
 
         // Check if already connected from previous session
@@ -43,7 +46,6 @@ export function BaseAccountProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Failed to initialize Base Account SDK:', error)
       }
-      setReady(true)
     }
 
     initSDK()
