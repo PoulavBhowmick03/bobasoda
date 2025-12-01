@@ -20,13 +20,13 @@ export const metadata: Metadata = {
   other: {
     "fc:miniapp": JSON.stringify({
       version: "next",
-      imageUrl: "https://bobasoda.app/bobasoda-logo.png",
+      imageUrl: "https://bobasodamini.vercel.app/bobasoda-logo.png",
       button: {
         title: "Play Now",
         action: {
           type: "launch_miniapp",
           name: "BobaSoda",
-          url: "https://bobasoda.app",
+          url: "https://bobasodamini.vercel.app",
         },
       },
     }),
