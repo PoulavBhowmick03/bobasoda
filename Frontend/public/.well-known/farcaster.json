@@ -1,18 +1,15 @@
 {
   "accountAssociation": {
-    "header": "",
-    "payload": "",
-    "signature": ""
-  },
-  "baseBuilder": {
-    "ownerAddress": "0xYOUR_WALLET_ADDRESS"
+    "header": "eyJmaWQiOjEwNzkzMzUsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHhFMDg5YjQxNGFFQTNlNDI5MjlDZjc2RkFmYkUzMURCMjc3MDJDNjcxIn0",
+    "payload": "eyJkb21haW4iOiJib2Jhc29kYW1pbmkudmVyY2VsLmFwcCJ9",
+    "signature": "xdN8FXBsgWQkSL+bAPs2hN4LhAkYktJO53pCTCyq5IZuu0O8qjYKKTnf/HwIEVBEmrZCraZwtFTr6hRMu+61/xw="
   },
   "miniapp": {
     "version": "1",
     "name": "BobaSoda",
-    "homeUrl": "https://bobasoda.app",
-    "iconUrl": "https://bobasoda.app/bobasoda-logo.png",
-    "splashImageUrl": "https://bobasoda.app/bobasoda-logo.png",
+    "homeUrl": "https://bobasodamini.vercel.app",
+    "iconUrl": "https://bobasodamini.vercel.app/bobasoda-logo.png",
+    "splashImageUrl": "https://bobasodamini.vercel.app/bobasoda-logo.png",
     "splashBackgroundColor": "#27262c",
     "subtitle": "Predict crypto prices and win",
     "description": "BobaSoda is a crypto prediction game. Bet on whether ETH, BTC, or BNB will go up or down and win rewards.",
@@ -20,6 +17,6 @@
     "tags": ["crypto", "prediction", "betting", "defi", "base"],
     "ogTitle": "BobaSoda - Crypto Prediction Game",
     "ogDescription": "Predict crypto prices and win rewards on Base",
-    "ogImageUrl": "https://bobasoda.app/og-image.png"
+    "ogImageUrl": "https://bobasodamini.vercel.app/og-image.png"
   }
 }
