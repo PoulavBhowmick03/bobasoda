@@ -15,9 +15,30 @@ export default function BottomNav() {
       }}
     >
       <button
+        onClick={() => router.push("/waitlist")}
+        className={`p-2 sm:p-3 rounded-2xl transition flex flex-col items-center gap-1 ${
+          pathname === "/waitlist" || pathname === "/" ? "bg-yellow-400" : "hover:bg-gray-100"
+        }`}
+      >
+        <Image
+          src="/icons/trophy.svg"
+          alt="Waitlist"
+          width={32}
+          height={32}
+          className={`w-6 h-6 sm:w-8 sm:h-8 ${
+            pathname === "/waitlist" || pathname === "/" ? "[filter:brightness(0)]" : "[filter:brightness(0)_saturate(100%)_invert(45%)_sepia(0%)_saturate(0%)_hue-rotate(0deg)_brightness(95%)_contrast(92%)]"
+          }`}
+        />
+        <span className={`text-[10px] sm:text-xs font-medium ${
+          pathname === "/waitlist" || pathname === "/" ? "text-black" : "text-gray-500"
+        }`}>
+          Waitlist
+        </span>
+      </button>
+      <button
         onClick={() => router.push("/profile")}
         className={`p-3 sm:p-4 rounded-full transition ${
-          pathname === "/profile" || pathname === "/" ? "bg-yellow-400" : "hover:bg-gray-100"
+          pathname === "/profile" ? "bg-yellow-400" : "hover:bg-gray-100"
         }`}
       >
         <Image
@@ -26,7 +47,7 @@ export default function BottomNav() {
           width={40}
           height={40}
           className={`w-8 h-8 sm:w-10 sm:h-10 ${
-            pathname === "/profile" || pathname === "/" ? "[filter:brightness(0)]" : "[filter:brightness(0)_saturate(100%)_invert(45%)_sepia(0%)_saturate(0%)_hue-rotate(0deg)_brightness(95%)_contrast(92%)]"
+            pathname === "/profile" ? "[filter:brightness(0)]" : "[filter:brightness(0)_saturate(100%)_invert(45%)_sepia(0%)_saturate(0%)_hue-rotate(0deg)_brightness(95%)_contrast(92%)]"
           }`}
         />
       </button>
