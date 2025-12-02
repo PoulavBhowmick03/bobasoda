@@ -69,7 +69,7 @@ export default function WaitlistPage() {
                 type="text"
                 value={twitter}
                 onChange={(e) => setTwitter(e.target.value)}
-                placeholder="Twitter handle (e.g. @username)"
+                placeholder="Twitter handle (e.g. @gavinbelson)"
                 required
                 disabled={loading}
                 autoCapitalize="none"
@@ -82,7 +82,7 @@ export default function WaitlistPage() {
                 type="text"
                 value={telegram}
                 onChange={(e) => setTelegram(e.target.value)}
-                placeholder="Telegram handle (e.g. @username)"
+                placeholder="Telegram handle (e.g. @gavinbelson)"
                 required
                 disabled={loading}
                 autoCapitalize="none"
@@ -91,19 +91,31 @@ export default function WaitlistPage() {
                 className="w-full px-4 py-3 rounded-xl bg-white/10 text-white placeholder-gray-400 border border-white/20 focus:outline-none focus:border-yellow-400 mb-4 disabled:opacity-50"
                 style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
               />
-              <select
-                value={designation}
-                onChange={(e) => setDesignation(e.target.value)}
-                required
-                disabled={loading}
-                className="w-full px-4 py-3 rounded-xl bg-white/10 text-white border border-white/20 focus:outline-none focus:border-yellow-400 mb-4 disabled:opacity-50 appearance-none cursor-pointer"
-                style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
-              >
-                <option value="" disabled className="bg-[#27262c] text-gray-400">Select your role</option>
-                <option value="founder" className="bg-[#27262c]">Founder</option>
-                <option value="builder" className="bg-[#27262c]">Builder</option>
-                <option value="looking_around" className="bg-[#27262c]">Looking around</option>
-              </select>
+              <div className="relative mb-4">
+                <select
+                  value={designation}
+                  onChange={(e) => setDesignation(e.target.value)}
+                  required
+                  disabled={loading}
+                  className={`w-full px-4 py-3 pr-10 rounded-xl bg-white/10 border border-white/20 focus:outline-none focus:border-yellow-400 disabled:opacity-50 appearance-none cursor-pointer ${
+                    designation ? 'text-white' : 'text-yellow-400 font-bold'
+                  }`}
+                  style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}
+                >
+                  <option value="" disabled className="bg-[#27262c]">Select your role</option>
+                  <option value="founder" className="bg-[#27262c]">Founder</option>
+                  <option value="builder" className="bg-[#27262c]">Builder</option>
+                  <option value="looking_around" className="bg-[#27262c]">Looking around</option>
+                </select>
+                <svg
+                  className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </div>
               {error && (
                 <p className="text-red-400 text-sm mb-4">{error}</p>
               )}
